@@ -59,6 +59,9 @@ class Dcpu16Translator:
         reg_alloc = BasicRegisterAllocator()
         self._reg_res = reg_alloc.allocate(self._cfg, Dcpu16Translator.DCPU16_NUM_GP_REGISTERS)
 
+        for blk in self._cfg.get_blocks():
+            print(Printer().print_basic_block(blk))
+
         # This is the color -> register map
         self._register_mapping = 'ABCXYZI'
 
@@ -107,7 +110,7 @@ class Dcpu16Translator:
             # Translate the block's instructions
             last_inst = None
             for inst in blk.get_instructions():
-                # print(f'  # {Printer().print_instruction(inst)}')
+                print(f'  # {Printer().print_instruction(inst)}')
 
                 dest = self._translate_operand(inst.oprs[0])
                 opr1 = self._translate_operand(inst.oprs[1])
@@ -292,6 +295,13 @@ class Dcpu16Translator:
 
                     print(f'\tSET [J + {i + 1}], {dest}')
                     pass
+
+                elif inst.op == IrOpcode.ASSIGN_ADDROF:
+                    lr = tuple(inst.extra)
+                    i = self._stored_lrs.index(lr)
+
+                    print(f'\tSET {dest}, J')
+                    print(f'\tADD {dest}, {i + 1}')
 
                 else:
                     assert False, "Unknown instruction"

@@ -1,14 +1,15 @@
-from parser.parser import Parser
-from parser.optimizer import Optimizer
-from parser.translator import Translator
+from parsing.parser import Parser
+from parsing.optimizer import Optimizer
+from parsing.ir_translator import IrTranslator
 from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 
 code = """
-int add(int a, int b); 
+void add(int* a); 
 
 int main() {
-    return add(add(1, 2), add(3, 4));
+    int a = 123;
+    add(&a);
 }
 """
 
@@ -22,7 +23,7 @@ opt = Optimizer(parser)
 opt.optimize()
 
 # Now we need to translate it
-trans = Translator(parser)
+trans = IrTranslator(parser)
 trans.translate()
 
 code_trans = Dcpu16Translator()

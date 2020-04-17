@@ -9,13 +9,28 @@ Used to identify basic blocks.
 
 
 class IrOpcodeClass(Enum):
+    # anything else
     NONE = auto()
+
+    # dest = op? a
     ASSIGN2 = auto()
+
+    # dest = a op b
     ASSIGN3 = auto()
+
+    # op a
     USE1 = auto()
+
+    # op a, b
     USE2 = auto()
+
+    # dest = call a (extra...)
     ASSIGN_CALL = auto()
+
+    # dest = op a (extra...)
     ASSIGN_FIXED_CALL = auto()
+
+    # call a (extra...)
     CALL = auto()
 
 
@@ -50,6 +65,7 @@ class IrOpcode(Enum):
 
     # others instructions
     ASSIGN_DEREF = auto()
+    ASSIGN_ADDROF = auto()
     ASSIGN_CALL = auto()
     CALL = auto()
     RETN = auto()
@@ -96,6 +112,7 @@ class IrOpcode(Enum):
 
             IrOpcode.ASSIGN_CALL,
             IrOpcode.ASSIGN_DEREF,
+            IrOpcode.ASSIGN_ADDROF,
             IrOpcode.ASSIGN_PHI,
         ]
 
@@ -115,6 +132,7 @@ class IrOpcode(Enum):
 
             IrOpcode.ASSIGN: IrOpcodeClass.ASSIGN2,
             IrOpcode.ASSIGN_DEREF: IrOpcodeClass.ASSIGN2,
+            IrOpcode.ASSIGN_ADDROF: IrOpcodeClass.ASSIGN2,
 
             IrOpcode.ASSIGN_ADD: IrOpcodeClass.ASSIGN3,
             IrOpcode.ASSIGN_SUB: IrOpcodeClass.ASSIGN3,

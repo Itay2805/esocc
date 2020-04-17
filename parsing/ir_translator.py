@@ -4,7 +4,7 @@ from .parser import Parser
 from .ast import *
 
 
-class Translator:
+class IrTranslator:
     """
     Will translate the AST into IR code
     """
@@ -137,6 +137,10 @@ class Translator:
 
             else:
                 self._asm.emit_retn()
+
+        elif isinstance(expr, ExprAddrof):
+            assert dest is not None
+            self._asm.emit_assign_addrof(dest, self._translate_to_operand(expr.expr))
 
         elif isinstance(expr, ExprDeref):
             assert dest is not None

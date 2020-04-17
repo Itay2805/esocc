@@ -40,17 +40,49 @@ class BasicRegisterAllocator(RegisterAllocator):
         res = RegisterAllocation()
         self._res = res
 
+        # Do a first iteration of spilling addrof stuff
+        self._discover_live_ranges()
+        self._spill_addrof()
+
+        # now do the iterations of coloring and spilling
         self._discover_live_ranges()
         self._build_inference_graph()
         while not self._color_graph():
-            p = Printer()
-            for blk in self._cfg.get_blocks():
-                p.print_basic_block(blk)
             self._discover_live_ranges()
             self._build_inference_graph()
 
         self._res = None
         return res
+
+    def _spill_addrof(self):
+        """
+        will spill any live range containing a reference to an addrof, so the
+        code generator can properly do the addrof
+        """
+
+        lr_to_spill = set()
+        for blk in self._cfg.get_blocks():
+            for inst in blk.get_instructions():
+                if inst.op == IrOpcode.ASSIGN_ADDROF:
+                    if isinstance(inst.oprs[1], IrVar):
+                        # find the live range we need to spill
+                        var = inst.oprs[1].get_id()
+                        found = False
+                        for lr in self._live_ranges:
+                            if var in lr:
+                                lr_to_spill.add(tuple(lr))
+                                found = True
+                                break
+
+                        if found:
+                            # modify addrof to have the live range instead
+                            inst.oprs[1] = None
+                            for var in lr:
+                                inst.push_extra(IrVar(var))
+
+        for lr in lr_to_spill:
+            self._spilled_lrs.add(lr)
+            self._insert_spill_code(set(lr))
 
     def _discover_live_ranges(self):
         """
@@ -301,6 +333,10 @@ class BasicRegisterAllocator(RegisterAllocator):
                                 break
                         if not found:
                             insts.append(inst)
+                    continue
+
+                elif inst.op == IrOpcode.ASSIGN_ADDROF:
+                    insts.append(inst)
                     continue
 
                 need_store = False

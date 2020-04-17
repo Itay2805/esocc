@@ -63,6 +63,8 @@ class Printer:
 
             IrOpcode.ASSIGN_PHI: 'phi',
 
+            IrOpcode.ASSIGN_ADDROF: 'addrof',
+
             IrOpcode.CALL: 'call',
         }[op]
 
@@ -118,6 +120,12 @@ class Printer:
 
         elif ins.op == IrOpcode.STORE:
             return f'LR<{", ".join(map(self.print_operand, ins.extra))}> = {self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[0])}'
+
+        elif ins.op == IrOpcode.ASSIGN_ADDROF:
+            if ins.oprs[1] is None:
+                return f'{self.print_operand(ins.oprs[0])} = {self.print_mnemonic(ins.op)} LR<{", ".join(map(self.print_operand, ins.extra))}>'
+            else:
+                return f'{self.print_operand(ins.oprs[0])} = {self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[1])}'
 
         else:
             assert False, ins
@@ -194,4 +202,4 @@ class Printer:
             return f'<block #{opr.get_id()}>'
 
         else:
-            assert False
+            assert False, opr

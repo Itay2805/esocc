@@ -96,6 +96,9 @@ class Assembler:
     def emit_assign_deref(self, r: IrOperand, a: IrOperand):
         self._emit_basic2(IrOpcode.ASSIGN_DEREF, r, a)
 
+    def emit_assign_addrof(self, r: IrOperand, a: IrOperand):
+        self._emit_basic2(IrOpcode.ASSIGN_ADDROF, r, a)
+
     def emit_assign(self, a: IrOperand, b: IrOperand):
         self._emit_basic2(IrOpcode.ASSIGN, a, b)
 
