@@ -144,7 +144,7 @@ class IrTranslator:
 
         elif isinstance(expr, ExprDeref):
             assert dest is not None
-            self._asm.emit_assign_deref(dest, self._translate_to_operand(expr.expr))
+            self._asm.emit_assign_read(dest, self._translate_to_operand(expr.expr))
 
         else:
             assert False, expr

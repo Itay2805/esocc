@@ -112,9 +112,9 @@ class Dcpu16Translator:
             for inst in blk.get_instructions():
                 print(f'  # {Printer().print_instruction(inst)}')
 
-                dest = self._translate_operand(inst.oprs[0])
-                opr1 = self._translate_operand(inst.oprs[1])
-                opr2 = self._translate_operand(inst.oprs[2])
+                dest = self._translate_operand(inst.oprs[0], True)
+                opr1 = self._translate_operand(inst.oprs[1], True)
+                opr2 = self._translate_operand(inst.oprs[2], True)
 
                 if inst.op == IrOpcode.ASSIGN_ADD or inst.op == IrOpcode.ASSIGN_SIGNED_ADD:
                     if dest != opr1:
@@ -175,13 +175,15 @@ class Dcpu16Translator:
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
 
-                elif inst.op == IrOpcode.ASSIGN_DEREF:
+                elif inst.op == IrOpcode.ASSIGN_READ:
                     print(f'\tSET {dest}, [{opr1}]')
 
+                elif inst.op == IrOpcode.WRITE:
+                    print(f'\tSET [{dest}], {opr1}')
+
                 elif inst.op == IrOpcode.RET:
-                    opr = self._translate_operand(inst.oprs[0])
-                    if opr != 'A':
-                        print(f'\tSET A, {opr}')
+                    if dest != 'A':
+                        print(f'\tSET A, {dest}')
 
                     for rest in reversed(self._to_restore_on_exit):
                         print(f'\tSET {rest}, POP')
@@ -240,9 +242,9 @@ class Dcpu16Translator:
                         print(f'\tSET PUSH, {e}')
 
                     for e in reversed(inst.extra):
-                        print(f'\tSET PUSH, {self._translate_operand(e)}')
+                        print(f'\tSET PUSH, {self._translate_operand(e, True)}')
 
-                    print(f'\tJSR {dest}')
+                    print(f'\tJSR {self._translate_operand(inst.oprs[0], False)}')
 
                     print(f'\tSUB SP, {len(inst.extra)}')
 
@@ -261,9 +263,9 @@ class Dcpu16Translator:
                             print(f'\tSET PUSH, {e}')
 
                     for e in reversed(inst.extra):
-                        print(f'\tSET PUSH, {self._translate_operand(e)}')
+                        print(f'\tSET PUSH, {self._translate_operand(e, True)}')
 
-                    print(f'\tJSR {opr1}')
+                    print(f'\tJSR {self._translate_operand(inst.oprs[1], False)}')
 
                     print(f'\tSUB SP, {len(inst.extra)}')
 
@@ -297,18 +299,20 @@ class Dcpu16Translator:
                     pass
 
                 elif inst.op == IrOpcode.ASSIGN_ADDROF:
-                    lr = tuple(inst.extra)
-                    i = self._stored_lrs.index(lr)
+                    if inst.oprs[1] is None:
+                        lr = tuple(inst.extra)
+                        i = self._stored_lrs.index(lr)
 
-                    print(f'\tSET {dest}, J')
-                    print(f'\tADD {dest}, {i + 1}')
-
+                        print(f'\tSET {dest}, J')
+                        print(f'\tADD {dest}, {i + 1}')
+                    else:
+                        print(f'\tSET {dest}, {self._translate_operand(inst.oprs[1], False)}')
                 else:
                     assert False, "Unknown instruction"
 
                 last_inst = inst
 
-    def _translate_operand(self, opr):
+    def _translate_operand(self, opr, deref):
         """
         Translates a single operand to dcpu16
         """
@@ -328,6 +332,9 @@ class Dcpu16Translator:
                     self._to_store_on_call.append(reg)
                 return reg
         elif isinstance(opr, IrName):
-            return opr.get_name()
+            if deref:
+                return f'[{opr.get_name()}]'
+            else:
+                return opr.get_name()
         else:
             assert False, opr

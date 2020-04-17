@@ -93,8 +93,11 @@ class Assembler:
     def emit_assign_mod(self, r: IrOperand, a: IrOperand, b: IrOperand):
         self._emit_basic3(IrOpcode.ASSIGN_MOD, r, a, b)
 
-    def emit_assign_deref(self, r: IrOperand, a: IrOperand):
-        self._emit_basic2(IrOpcode.ASSIGN_DEREF, r, a)
+    def emit_assign_read(self, r: IrOperand, a: IrOperand):
+        self._emit_basic2(IrOpcode.ASSIGN_READ, r, a)
+
+    def emit_write(self, r: IrOperand, a: IrOperand):
+        self._emit_basic2(IrOpcode.WRITE, r, a)
 
     def emit_assign_addrof(self, r: IrOperand, a: IrOperand):
         self._emit_basic2(IrOpcode.ASSIGN_ADDROF, r, a)

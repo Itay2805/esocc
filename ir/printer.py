@@ -30,7 +30,6 @@ class Printer:
             IrOpcode.UNLOAD: 'unload',
 
             IrOpcode.ASSIGN: '=',
-            IrOpcode.ASSIGN_DEREF: 'deref',
 
             IrOpcode.ASSIGN_ADD: '+',
             IrOpcode.ASSIGN_SUB: '-',
@@ -64,6 +63,8 @@ class Printer:
             IrOpcode.ASSIGN_PHI: 'phi',
 
             IrOpcode.ASSIGN_ADDROF: 'addrof',
+            IrOpcode.ASSIGN_READ: 'read',
+            IrOpcode.WRITE: 'write',
 
             IrOpcode.CALL: 'call',
         }[op]
@@ -87,10 +88,13 @@ class Printer:
         elif ins.op == IrOpcode.ASSIGN:
             return f'{self.print_operand(ins.oprs[0])} = {self.print_operand(ins.oprs[1])}'
 
-        elif ins.op == IrOpcode.ASSIGN_DEREF:
+        elif ins.op == IrOpcode.ASSIGN_READ:
             return f'{self.print_operand(ins.oprs[0])} = {self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[1])}'
 
-        elif ins.op == IrOpcode.CMP:
+        elif ins.op in [
+            IrOpcode.CMP,
+            IrOpcode.WRITE,
+        ]:
             return f'{self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[0])}, {self.print_operand(ins.oprs[1])}'
 
         elif ins.op in [

@@ -5,11 +5,13 @@ from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 
 code = """
-void add(int* a); 
+int test;
+
+int add(int a, int b);
 
 int main() {
-    int a = 123;
-    add(&a);
+    int a = 0;
+    return add(&a, test);
 }
 """
 

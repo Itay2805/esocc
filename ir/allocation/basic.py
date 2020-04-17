@@ -134,12 +134,13 @@ class BasicRegisterAllocator(RegisterAllocator):
         for blk in self._cfg.get_blocks():
             for inst in blk.get_instructions():
                 if inst.op.is_opcode_assign() or inst.op == IrOpcode.LOAD:
-                    var = inst.oprs[0].get_id()
-                    if var not in self._live_range_map:
-                        lr = set()
-                        lr.add(var)
-                        self._live_range_map[var] = len(self._live_ranges)
-                        self._live_ranges.append(lr)
+                    if isinstance(inst.oprs[0], IrVar):
+                        var = inst.oprs[0].get_id()
+                        if var not in self._live_range_map:
+                            lr = set()
+                            lr.add(var)
+                            self._live_range_map[var] = len(self._live_ranges)
+                            self._live_ranges.append(lr)
 
         self._nub_live_ranges()
 
@@ -212,13 +213,14 @@ class BasicRegisterAllocator(RegisterAllocator):
                     opr_end = inst.op.get_operand_count()
 
                     if inst.op.is_opcode_assign():
-                        lr_dest = self._live_range_map[inst.oprs[0].get_id()]
-                        for lr in live_now:
-                            if lr != lr_dest:
-                                self._infer_graph.add_edge(lr_dest, lr)
+                        if isinstance(inst.oprs[0], IrVar):
+                            lr_dest = self._live_range_map[inst.oprs[0].get_id()]
+                            for lr in live_now:
+                                if lr != lr_dest:
+                                    self._infer_graph.add_edge(lr_dest, lr)
 
-                        if lr_dest in live_now:
-                            live_now.remove(lr_dest)
+                            if lr_dest in live_now:
+                                live_now.remove(lr_dest)
 
                     # insert operands into LiveNow set
                     for opr in inst.oprs[opr_start:opr_end]:

@@ -63,13 +63,16 @@ class IrOpcode(Enum):
     ASSIGN_AND = auto()
     ASSIGN_XOR = auto()
 
-    # others instructions
-    ASSIGN_DEREF = auto()
-    ASSIGN_ADDROF = auto()
+    # function instructions
     ASSIGN_CALL = auto()
     CALL = auto()
     RETN = auto()
     RET = auto()
+
+    # memory instructions
+    WRITE = auto()
+    ASSIGN_READ = auto()
+    ASSIGN_ADDROF = auto()
 
     # branch instructions
     CMP = auto()
@@ -110,9 +113,10 @@ class IrOpcode(Enum):
             IrOpcode.ASSIGN_AND,
             IrOpcode.ASSIGN_XOR,
 
-            IrOpcode.ASSIGN_CALL,
-            IrOpcode.ASSIGN_DEREF,
+            IrOpcode.ASSIGN_READ,
             IrOpcode.ASSIGN_ADDROF,
+
+            IrOpcode.ASSIGN_CALL,
             IrOpcode.ASSIGN_PHI,
         ]
 
@@ -131,7 +135,8 @@ class IrOpcode(Enum):
             IrOpcode.UNLOAD: IrOpcodeClass.NONE,
 
             IrOpcode.ASSIGN: IrOpcodeClass.ASSIGN2,
-            IrOpcode.ASSIGN_DEREF: IrOpcodeClass.ASSIGN2,
+
+            IrOpcode.ASSIGN_READ: IrOpcodeClass.ASSIGN2,
             IrOpcode.ASSIGN_ADDROF: IrOpcodeClass.ASSIGN2,
 
             IrOpcode.ASSIGN_ADD: IrOpcodeClass.ASSIGN3,
@@ -160,6 +165,7 @@ class IrOpcode(Enum):
             IrOpcode.JGE: IrOpcodeClass.USE1,
 
             IrOpcode.CMP: IrOpcodeClass.USE2,
+            IrOpcode.WRITE: IrOpcodeClass.USE2,
 
             IrOpcode.ASSIGN_CALL: IrOpcodeClass.ASSIGN_CALL,
 
