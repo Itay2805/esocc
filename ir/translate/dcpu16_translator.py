@@ -75,7 +75,7 @@ class Dcpu16Translator:
             for inst in blk.get_instructions():
                 if inst.op == IrOpcode.STORE:
                     self._need_prologue = True
-                    break
+                    self._stored_lrs.append(tuple(inst.extra))
 
         # This is filled out as we go
         # TODO: we should fill it out better so we only
@@ -97,8 +97,8 @@ class Dcpu16Translator:
             print(f'\tSET PUSH, J')
             print(f'\tSET J, SP')
 
-            # TODO: allocate space for stack allocated structures
-            #       and for spilled registers
+            if len(self._stored_lrs) > 0:
+                print(f'\tSUB SP, {len(self._stored_lrs)}')
 
         # start converting code
         for blk in self._cfg.get_blocks():
@@ -315,15 +315,15 @@ class Dcpu16Translator:
 
                 elif inst.op == IrOpcode.STORE:
                     lr = tuple(inst.extra)
-                    self._stored_lrs.append(lr)
-                    print(f'\tSET PUSH, {dest}')
+                    i = self._stored_lrs.index(lr)
+                    print(f'\tSET [J - {i + 1}], {dest}')
 
                 elif inst.op == IrOpcode.LOAD:
                     lr = tuple(inst.extra)
                     i = self._stored_lrs.index(lr)
 
                     self._loaded_lrs[dest] = lr
-                    print(f'\tSET {dest}, [J + {i + 1}]')
+                    print(f'\tSET {dest}, [J - {i + 1}]')
                     pass
 
                 elif inst.op == IrOpcode.UNLOAD:
@@ -331,7 +331,7 @@ class Dcpu16Translator:
                     del self._loaded_lrs[dest]
                     i = self._stored_lrs.index(lr)
 
-                    print(f'\tSET [J + {i + 1}], {dest}')
+                    print(f'\tSET [J - {i + 1}], {dest}')
                     pass
 
                 elif inst.op == IrOpcode.ASSIGN_ADDROF:
@@ -342,7 +342,20 @@ class Dcpu16Translator:
                         print(f'\tSET {dest}, J')
                         print(f'\tADD {dest}, {i + 1}')
                     else:
-                        print(f'\tSET {dest}, {self._translate_operand(inst.oprs[1], False)}')
+                        opr = inst.oprs[1]
+                        if isinstance(opr, IrVar):
+                            if var_base(opr.get_id()) in self._proc.get_params():
+                                if self._need_prologue:
+                                    print(f'\tSET {dest}, J')
+                                else:
+                                    print(f'\tSET {dest}, SP')
+                                print(f'\tADD {dest}, {self._proc.get_params().index(var_base(opr.get_id())) + 2}')
+                            else:
+                                assert False, "Tried to addrof a variable which is not on the stack"
+                        elif isinstance(opr, IrName):
+                            print(f'\tSET {dest}, {opr.get_name()}')
+                        else:
+                            assert False, f"Invalid operand {opr} for addrof"
                 elif inst.op == IrOpcode.ASSIGN_PHI:
                     pass
                 else:
@@ -363,7 +376,10 @@ class Dcpu16Translator:
             return f'.blk{opr.get_id()}'
         elif isinstance(opr, IrVar):
             if var_base(opr.get_id()) in self._proc.get_params():
-                return f'[J + {self._proc.get_params().index(var_base(opr.get_id())) + 2}]'
+                if self._need_prologue:
+                    return f'[J + {self._proc.get_params().index(var_base(opr.get_id())) + 2}]'
+                else:
+                    return f'[SP + {self._proc.get_params().index(var_base(opr.get_id())) + 2}]'
             else:
                 reg = self._register_mapping[self._reg_res.get_color(opr.get_id())]
                 if reg in 'ABC' and reg not in self._to_store_on_call:

@@ -7,8 +7,9 @@ from ir.translate.dcpu16_translator import Dcpu16Translator
 code = """
 short buffer[0x1000];
 
-int get_from_buffer(int index) {
-    return buffer[index];
+int* get_from_buffer(int index) {
+    int a = 123;
+    return &index + &a;
 }
 """
 

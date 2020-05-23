@@ -1110,6 +1110,7 @@ class Parser(Tokenizer):
                 # Now that we know what this is we can parse it normally
                 if func:
                     ret_typ = self._parse_type(True)
+                    ret_typ = self._parse_type_prefix(ret_typ)
 
                     # Parse the calling convention
                     callconv = CallConv.STACKCALL
