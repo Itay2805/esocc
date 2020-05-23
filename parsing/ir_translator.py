@@ -147,11 +147,17 @@ class IrTranslator:
                 operands.append(self._translate_to_operand(arg))
 
             if dest is None:
-                call = self._asm.emit_call(self._translate_to_operand(expr.func))
+                if isinstance(expr.func, ExprIdent) and isinstance(expr.func.ident, GlobalIdentifier):
+                    call = self._asm.emit_call_ptr(self._translate_to_operand(expr.func))
+                else:
+                    call = self._asm.emit_call(self._translate_to_operand(expr.func))
                 for opr in operands:
                     call.push_extra(opr)
             else:
-                call = self._asm.emit_assign_call(dest, self._translate_to_operand(expr.func))
+                if isinstance(expr.func, ExprIdent) and isinstance(expr.func.ident, GlobalIdentifier):
+                    call = self._asm.emit_assign_call_ptr(dest, self._translate_to_operand(expr.func))
+                else:
+                    call = self._asm.emit_assign_call(dest, self._translate_to_operand(expr.func))
                 for opr in operands:
                     call.push_extra(opr)
 

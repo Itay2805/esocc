@@ -232,7 +232,7 @@ class Dcpu16Translator:
 
                 # TODO: JGE and JLE
 
-                elif inst.op == IrOpcode.CALL:
+                elif inst.op == IrOpcode.CALL or inst.op == IrOpcode.CALL_PTR:
 
                     # save registers that we need to
                     # TODO: we can do this much smarter if
@@ -244,7 +244,10 @@ class Dcpu16Translator:
                     for e in reversed(inst.extra):
                         print(f'\tSET PUSH, {self._translate_operand(e, True)}')
 
-                    print(f'\tJSR {self._translate_operand(inst.oprs[0], False)}')
+                    if inst.op == IrOpcode.CALL:
+                        print(f'\tJSR {self._translate_operand(inst.oprs[0], False)}')
+                    else:
+                        print(f'\tJSR {self._translate_operand(inst.oprs[0], True)}')
 
                     print(f'\tSUB SP, {len(inst.extraR)}')
 
@@ -252,7 +255,7 @@ class Dcpu16Translator:
                     for e in reversed(self._to_store_on_call):
                         print(f'\tSET {e}, POP')
 
-                elif inst.op == IrOpcode.ASSIGN_CALL:
+                elif inst.op == IrOpcode.ASSIGN_CALL or inst.op == IrOpcode.ASSIGN_CALL_PTR:
 
                     # save registers that we need to
                     # TODO: we can do this much smarter if
@@ -265,7 +268,10 @@ class Dcpu16Translator:
                     for e in reversed(inst.extra):
                         print(f'\tSET PUSH, {self._translate_operand(e, True)}')
 
-                    print(f'\tJSR {self._translate_operand(inst.oprs[1], False)}')
+                    if inst.op == IrOpcode.ASSIGN_CALL:
+                        print(f'\tJSR {self._translate_operand(inst.oprs[1], False)}')
+                    else:
+                        print(f'\tJSR {self._translate_operand(inst.oprs[1], True)}')
 
                     print(f'\tSUB SP, {len(inst.extra)}')
 

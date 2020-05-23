@@ -65,7 +65,9 @@ class IrOpcode(Enum):
 
     # function instructions
     ASSIGN_CALL = auto()
+    ASSIGN_CALL_PTR = auto()
     CALL = auto()
+    CALL_PTR = auto()
     RETN = auto()
     RET = auto()
 

@@ -5,7 +5,7 @@ from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 
 code = """
-int trig(int num) {
+int __regcall trig(int num) {
     if (num == 1) {
         return 1;
     }

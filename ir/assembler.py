@@ -144,9 +144,22 @@ class Assembler:
         inst.oprs[0] = copy(target)
         return inst
 
+    def emit_call_ptr(self, target: IrOperand):
+        inst = self._put_instruction()
+        inst.op = IrOpcode.CALL_PTR
+        inst.oprs[0] = copy(target)
+        return inst
+
     def emit_assign_call(self, dest: IrOperand, target: IrOperand):
         inst = self._put_instruction()
         inst.op = IrOpcode.ASSIGN_CALL
+        inst.oprs[0] = copy(dest)
+        inst.oprs[1] = copy(target)
+        return inst
+
+    def emit_assign_call_ptr(self, dest: IrOperand, target: IrOperand):
+        inst = self._put_instruction()
+        inst.op = IrOpcode.ASSIGN_CALL_PTR
         inst.oprs[0] = copy(dest)
         inst.oprs[1] = copy(target)
         return inst
