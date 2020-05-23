@@ -117,56 +117,86 @@ class Dcpu16Translator:
                 opr2 = self._translate_operand(inst.oprs[2], True)
 
                 if inst.op == IrOpcode.ASSIGN_ADD or inst.op == IrOpcode.ASSIGN_SIGNED_ADD:
+                    if opr2 == dest:
+                        tmp = opr1
+                        opr1 = opr2
+                        opr2 = tmp
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tADD {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SUB or inst.op == IrOpcode.ASSIGN_SIGNED_SUB:
+                    assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tSUB {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_MUL:
+                    if opr2 == dest:
+                        tmp = opr1
+                        opr1 = opr2
+                        opr2 = tmp
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tMUL {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SIGNED_MUL:
-                    if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tMLI {dest}, {opr2}')
+                    if opr2 != 1 and opr1 != 1:
+                        if opr2 == dest:
+                            tmp = opr1
+                            opr1 = opr2
+                            opr2 = tmp
+                        if dest != opr1:
+                            print(f'\tSET {dest}, {opr1}')
+                        print(f'\tMLI {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_DIV:
+                    assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tDIV {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SIGNED_DIV:
+                    assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tDIV {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_MOD:
+                    assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tMOD {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SIGNED_MOD:
+                    assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tMDI {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_OR:
+                    if opr2 == dest:
+                        tmp = opr1
+                        opr1 = opr2
+                        opr2 = tmp
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tBOR {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_AND:
+                    if opr2 == dest:
+                        tmp = opr1
+                        opr1 = opr2
+                        opr2 = tmp
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tAND {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_XOR:
+                    if opr2 == dest:
+                        tmp = opr1
+                        opr1 = opr2
+                        opr2 = tmp
                     if dest != opr1:
                         print(f'\tSET {dest}, {opr1}')
                     print(f'\tXOR {dest}, {opr2}')

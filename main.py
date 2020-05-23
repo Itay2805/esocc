@@ -5,11 +5,10 @@ from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 
 code = """
-int __regcall trig(int num) {
-    if (num == 1) {
-        return 1;
-    }
-    return num + trig(num - 1);
+short buffer[0x1000];
+
+int get_from_buffer(int index) {
+    return buffer[index];
 }
 """
 
@@ -18,9 +17,13 @@ parser = Parser(code)
 parser.parse()
 assert not parser.got_errors
 
+print('\n'.join(map(str, parser.func_list)))
+
 # Optimize the AST
 opt = Optimizer(parser)
 opt.optimize()
+
+print('\n'.join(map(str, opt.parser.func_list)))
 
 # Now we need to translate it
 trans = IrTranslator(parser)

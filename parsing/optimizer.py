@@ -214,6 +214,22 @@ class Optimizer:
                     if expr.op == '-':
                         return expr.left
 
+                # Left is 1
+                if isinstance(expr.left, ExprNumber) and expr.left.value == 1:
+                    if expr.op == '*':
+                        return expr.right
+
+                # Right is 1
+                if isinstance(expr.right, ExprNumber) and expr.right.value == 1:
+                    if expr.op == '*':
+                        return expr.left
+
+                    elif expr.op == '/':
+                        return expr.left
+
+                    elif expr.op == '%':
+                        return ExprNumber(0)
+
         elif isinstance(expr, ExprDeref):
             expr.expr = self._constant_fold(expr.expr, False)
             # deref an addrof
