@@ -212,22 +212,22 @@ class Dcpu16Translator:
 
                 elif inst.op == IrOpcode.JE:
                     assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFE {self._translate_operand(last_inst.oprs[0])}, {self._translate_operand(last_inst.oprs[1])}')
+                    print(f'\tIFE {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JNE:
                     assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFN {self._translate_operand(last_inst.oprs[0])}, {self._translate_operand(last_inst.oprs[1])}')
+                    print(f'\tIFN {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JL:
                     assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFL {self._translate_operand(last_inst.oprs[0])}, {self._translate_operand(last_inst.oprs[1])}')
+                    print(f'\tIFL {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JG:
                     assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFG {self._translate_operand(last_inst.oprs[0])}, {self._translate_operand(last_inst.oprs[1])}')
+                    print(f'\tIFG {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 # TODO: JGE and JLE
@@ -246,7 +246,7 @@ class Dcpu16Translator:
 
                     print(f'\tJSR {self._translate_operand(inst.oprs[0], False)}')
 
-                    print(f'\tSUB SP, {len(inst.extra)}')
+                    print(f'\tSUB SP, {len(inst.extraR)}')
 
                     # restore registers that we need to
                     for e in reversed(self._to_store_on_call):
@@ -307,6 +307,8 @@ class Dcpu16Translator:
                         print(f'\tADD {dest}, {i + 1}')
                     else:
                         print(f'\tSET {dest}, {self._translate_operand(inst.oprs[1], False)}')
+                elif inst.op == IrOpcode.ASSIGN_PHI:
+                    pass
                 else:
                     assert False, "Unknown instruction"
 
@@ -322,7 +324,7 @@ class Dcpu16Translator:
         if isinstance(opr, IrConst):
             return opr.get_value()
         elif isinstance(opr, IrBlockRef):
-            return f'blk{opr.get_id()}'
+            return f'.blk{opr.get_id()}'
         elif isinstance(opr, IrVar):
             if var_base(opr.get_id()) in self._proc.get_params():
                 return f'[J + {self._proc.get_params().index(var_base(opr.get_id())) + 2}]'

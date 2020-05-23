@@ -5,13 +5,11 @@ from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 
 code = """
-int test;
-
-int add(int a, int b);
-
-int main() {
-    int a = 0;
-    return add(&a, test);
+int trig(int num) {
+    if (num == 1) {
+        return 1;
+    }
+    return num + trig(num - 1);
 }
 """
 

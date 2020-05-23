@@ -188,7 +188,8 @@ class BasicRegisterAllocator(RegisterAllocator):
         for blk in self._cfg.get_blocks():
             live_now: Set[int] = set()
             for var in live_results.get_live_out(blk.get_id()):
-                live_now.add(self._live_range_map[var])
+                if var in self._live_range_map:
+                    live_now.add(self._live_range_map[var])
 
             insts = blk.get_instructions()
             for inst in reversed(insts):

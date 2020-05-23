@@ -934,7 +934,7 @@ class Parser(Tokenizer):
 
                 # Parse it
                 typ = self._parse_type(True)
-                self._parse_type_prefix(typ)
+                typ = self._parse_type_prefix(typ)
                 pname, ppos = self.expect_ident()
 
                 if already_exists:

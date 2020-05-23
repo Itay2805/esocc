@@ -182,6 +182,10 @@ class Assembler:
         self._insts.append(IrInstruction())
         return self._insts[-1]
 
+    def push_instruction(self, inst: IrInstruction):
+        self._pos += 1
+        self._insts.append(inst)
+
     def _emit_basic3(self, op: IrOpcode, r: IrOperand, a: IrOperand, b: IrOperand):
         """
         Emits a standard instruction in the form of: r = a <op> b

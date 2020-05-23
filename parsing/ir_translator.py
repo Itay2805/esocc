@@ -76,28 +76,69 @@ class IrTranslator:
             self._asm.emit_assign(dest, IrConst(expr.value))
 
         elif isinstance(expr, ExprBinary):
-            assert dest is not None
 
-            opr1 = self._translate_to_operand(expr.left)
-            opr2 = self._translate_to_operand(expr.right)
+            if dest is not None:
+                if expr.op in '+-/*%' or expr.op in ['==']:
+                    opr1 = self._translate_to_operand(expr.left)
+                    opr2 = self._translate_to_operand(expr.right)
 
-            if expr.op == '+':
-                self._asm.emit_assign_add(dest, opr1, opr2)
+                    if expr.op == '+':
+                        self._asm.emit_assign_add(dest, opr1, opr2)
 
-            elif expr.op == '-':
-                self._asm.emit_assign_sub(dest, opr1, opr2)
+                    elif expr.op == '-':
+                        self._asm.emit_assign_sub(dest, opr1, opr2)
 
-            elif expr.op == '/':
-                self._asm.emit_assign_div(dest, opr1, opr2)
+                    elif expr.op == '/':
+                        self._asm.emit_assign_div(dest, opr1, opr2)
 
-            elif expr.op == '*':
-                self._asm.emit_assign_mul(dest, opr1, opr2)
+                    elif expr.op == '*':
+                        self._asm.emit_assign_mul(dest, opr1, opr2)
 
-            elif expr.op == '%':
-                self._asm.emit_assign_mod(dest, opr1, opr2)
+                    elif expr.op == '%':
+                        self._asm.emit_assign_mod(dest, opr1, opr2)
 
+                    elif expr.op == '==':
+                        end = self._asm.make_label()
+                        self._asm.emit_assign(dest, IrConst(0))
+                        self._asm.emit_cmp(opr1, opr2)
+                        self._asm.emit_jne(IrLabel(end))
+                        self._asm.emit_assign(dest, IrConst(1))
+                        self._asm.mark_label(end)
+
+                    # TODO: more comparison implementations
+
+                elif expr.op == '&&':
+                    setfalse = self._asm.make_label()
+                    end = self._asm.make_label()
+                    self._asm.emit_cmp(self._translate_to_operand(expr.left), IrConst(0))
+                    self._asm.emit_je(IrLabel(setfalse))
+                    self._asm.emit_cmp(self._translate_to_operand(expr.right), IrConst(0))
+                    self._asm.emit_je(IrLabel(setfalse))
+                    self._asm.emit_assign(dest, IrConst(1))
+                    self._asm.emit_jmp(IrLabel(end))
+                    self._asm.mark_label(setfalse)
+                    self._asm.emit_assign(dest, IrConst(0))
+                    self._asm.mark_label(end)
+
+                else:
+                    assert False, f"{expr} [{expr.op}] - {type(expr)} | {dest}"
             else:
-                assert False
+                opr1 = self._translate_to_operand(expr.left)
+                if expr.op == '||':
+                    end = self._asm.make_label()
+                    self._asm.emit_cmp(opr1, IrConst(0))
+                    self._asm.emit_jne(IrLabel(end))
+                    self._translate_expr(expr.right, None)
+                    self._asm.mark_label(end)
+
+                elif expr.op == '&&':
+                    end = self._asm.make_label()
+                    self._asm.emit_cmp(opr1, IrConst(0))
+                    self._asm.emit_je(IrLabel(end))
+                    self._translate_expr(expr.right, None)
+                    self._asm.mark_label(end)
+                else:
+                    assert False, dest
 
         elif isinstance(expr, ExprCall):
             # handle arguments
