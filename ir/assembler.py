@@ -105,29 +105,26 @@ class Assembler:
     def emit_assign(self, a: IrOperand, b: IrOperand):
         self._emit_basic2(IrOpcode.ASSIGN, a, b)
 
-    def emit_cmp(self, a: IrOperand, b: IrOperand):
-        self._emit_basic2(IrOpcode.CMP, a, b)
-
     def emit_jmp(self, opr: IrOperand):
         self._emit_basic1(IrOpcode.JMP, opr)
 
-    def emit_je(self, opr: IrOperand):
-        self._emit_basic1(IrOpcode.JE, opr)
+    def emit_je(self, opr: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.JE, opr, a, b)
 
-    def emit_jne(self, opr: IrOperand):
-        self._emit_basic1(IrOpcode.JNE, opr)
+    def emit_jne(self, opr: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.JNE, opr, a, b)
 
-    def emit_jl(self, opr: IrOperand):
-        self._emit_basic1(IrOpcode.JL, opr)
+    def emit_jl(self, opr: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.JL, opr, a, b)
 
-    def emit_jle(self, opr: IrOperand):
-        self._emit_basic1(IrOpcode.JLE, opr)
+    def emit_jle(self, opr: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.JLE, opr, a, b)
 
-    def emit_jg(self, opr: IrOperand):
-        self._emit_basic1(IrOpcode.JG, opr)
+    def emit_jg(self, opr: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.JG, opr, a, b)
 
-    def emit_jge(self, opr: IrOperand):
-        self._emit_basic1(IrOpcode.JGE, opr)
+    def emit_jge(self, opr: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.JGE, opr, a, b)
 
     def emit_ret(self, opr: IrOperand):
         self._emit_basic1(IrOpcode.RET, opr)
@@ -201,8 +198,11 @@ class Assembler:
 
     def _emit_basic3(self, op: IrOpcode, r: IrOperand, a: IrOperand, b: IrOperand):
         """
-        Emits a standard instruction in the form of: r = a <op> b
+        Emits a standard instruction in the form of: r = a <op> b or jcc <lbl>, <a>, <b>
         """
+        if isinstance(r, IrLabel):
+            self._lbl_uses.append(Assembler.LabelUse(r.get_id(), self._pos))
+
         inst = self._put_instruction()
         inst.op = op
         inst.oprs[0] = copy(r)

@@ -233,34 +233,36 @@ class Dcpu16Translator:
                         print('\tSET J, POP')
                     print('\tSET PC, POP')
 
-                elif inst.op == IrOpcode.CMP:
-                    # TODO: better handling
-                    last_cmp_in_block = inst
-
                 elif inst.op == IrOpcode.JMP:
                     print(f'\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JE:
-                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
-                    print(f'\tIFE {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
+                    print(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JNE:
-                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
-                    print(f'\tIFN {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
+                    print(f'\tIFN {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JL:
-                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
-                    print(f'\tIFL {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
+                    print(f'\tIFL {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JG:
-                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
-                    print(f'\tIFG {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
+                    print(f'\tIFG {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
                     print(f'\t\tSET PC, {dest}')
 
-                # TODO: JGE and JLE
+                elif inst.op == IrOpcode.JGE:
+                    print(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    print(f'\t\tSET PC, {dest}')
+                    print(f'\tIFG {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    print(f'\t\tSET PC, {dest}')
+
+                elif inst.op == IrOpcode.JLE:
+                    print(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    print(f'\t\tSET PC, {dest}')
+                    print(f'\tIFL {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.CALL or inst.op == IrOpcode.CALL_PTR:
 
@@ -359,7 +361,7 @@ class Dcpu16Translator:
                 elif inst.op == IrOpcode.ASSIGN_PHI:
                     pass
                 else:
-                    assert False, "Unknown instruction"
+                    assert False, f"Unknown instruction = {inst}"
 
     def _translate_operand(self, opr, deref):
         """

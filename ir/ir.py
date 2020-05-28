@@ -24,6 +24,9 @@ class IrOpcodeClass(Enum):
     # op a, b
     USE2 = auto()
 
+    # op a, b, c
+    USE3 = auto()
+
     # dest = call a (extra...)
     ASSIGN_CALL = auto()
 
@@ -77,7 +80,6 @@ class IrOpcode(Enum):
     ASSIGN_ADDROF = auto()
 
     # branch instructions
-    CMP = auto()
     JMP = auto()
     JE = auto()
     JNE = auto()
@@ -159,14 +161,13 @@ class IrOpcode(Enum):
 
             IrOpcode.RET: IrOpcodeClass.USE1,
             IrOpcode.JMP: IrOpcodeClass.USE1,
-            IrOpcode.JE: IrOpcodeClass.USE1,
-            IrOpcode.JNE: IrOpcodeClass.USE1,
-            IrOpcode.JL: IrOpcodeClass.USE1,
-            IrOpcode.JLE: IrOpcodeClass.USE1,
-            IrOpcode.JG: IrOpcodeClass.USE1,
-            IrOpcode.JGE: IrOpcodeClass.USE1,
+            IrOpcode.JE: IrOpcodeClass.USE3,
+            IrOpcode.JNE: IrOpcodeClass.USE3,
+            IrOpcode.JL: IrOpcodeClass.USE3,
+            IrOpcode.JLE: IrOpcodeClass.USE3,
+            IrOpcode.JG: IrOpcodeClass.USE3,
+            IrOpcode.JGE: IrOpcodeClass.USE3,
 
-            IrOpcode.CMP: IrOpcodeClass.USE2,
             IrOpcode.WRITE: IrOpcodeClass.USE2,
 
             IrOpcode.ASSIGN_CALL: IrOpcodeClass.ASSIGN_CALL,
@@ -186,6 +187,7 @@ class IrOpcode(Enum):
             IrOpcodeClass.NONE: 0,
             IrOpcodeClass.USE1: 1,
             IrOpcodeClass.USE2: 2,
+            IrOpcodeClass.USE3: 3,
             IrOpcodeClass.ASSIGN2: 2,
             IrOpcodeClass.ASSIGN3: 3,
             IrOpcodeClass.CALL: 1,

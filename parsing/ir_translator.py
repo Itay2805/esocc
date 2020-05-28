@@ -100,8 +100,7 @@ class IrTranslator:
                     elif expr.op == '==':
                         end = self._asm.make_label()
                         self._asm.emit_assign(dest, IrConst(0))
-                        self._asm.emit_cmp(opr1, opr2)
-                        self._asm.emit_jne(IrLabel(end))
+                        self._asm.emit_jne(IrLabel(end), opr1, opr2)
                         self._asm.emit_assign(dest, IrConst(1))
                         self._asm.mark_label(end)
 
@@ -110,10 +109,8 @@ class IrTranslator:
                 elif expr.op == '&&':
                     setfalse = self._asm.make_label()
                     end = self._asm.make_label()
-                    self._asm.emit_cmp(self._translate_to_operand(expr.left), IrConst(0))
-                    self._asm.emit_je(IrLabel(setfalse))
-                    self._asm.emit_cmp(self._translate_to_operand(expr.right), IrConst(0))
-                    self._asm.emit_je(IrLabel(setfalse))
+                    self._asm.emit_je(IrLabel(setfalse), self._translate_to_operand(expr.left), IrConst(0))
+                    self._asm.emit_je(IrLabel(setfalse), self._translate_to_operand(expr.right), IrConst(0))
                     self._asm.emit_assign(dest, IrConst(1))
                     self._asm.emit_jmp(IrLabel(end))
                     self._asm.mark_label(setfalse)
@@ -126,15 +123,13 @@ class IrTranslator:
                 opr1 = self._translate_to_operand(expr.left)
                 if expr.op == '||':
                     end = self._asm.make_label()
-                    self._asm.emit_cmp(opr1, IrConst(0))
-                    self._asm.emit_jne(IrLabel(end))
+                    self._asm.emit_jne(IrLabel(end), opr1, IrConst(0))
                     self._translate_expr(expr.right, None)
                     self._asm.mark_label(end)
 
                 elif expr.op == '&&':
                     end = self._asm.make_label()
-                    self._asm.emit_cmp(opr1, IrConst(0))
-                    self._asm.emit_je(IrLabel(end))
+                    self._asm.emit_je(IrLabel(end), opr1, IrConst(0))
                     self._translate_expr(expr.right, None)
                     self._asm.mark_label(end)
                 else:
@@ -197,8 +192,8 @@ class IrTranslator:
             assert dest is None
             end = self._asm.make_label()
             start = self._asm.make_and_mark_label()
-            self._asm.emit_cmp(self._translate_to_operand(expr.cond), IrConst(0))
-            self._asm.emit_je(IrLabel(end))
+            # TODO: it is a waste to use == 0 again
+            self._asm.emit_je(IrLabel(end), self._translate_to_operand(expr.cond), IrConst(0))
             self._translate_expr(expr.body, None)
             self._asm.emit_jmp(IrLabel(start))
             self._asm.mark_label(end)

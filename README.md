@@ -28,4 +28,3 @@ A C compiler targeting esoteric architectures (for fun and profit).
 #### DCPU16
 * ABI based on [0x10c Standards Committee](https://github.com/0x10cStandardsCommittee/0x10c-Standards/blob/master/ABI/ABI%20draft%202.txt)
 * only stackcall for now
-* no loops/conditionals

@@ -56,8 +56,6 @@ class Printer:
             IrOpcode.JG: 'jg',
             IrOpcode.JGE: 'jge',
 
-            IrOpcode.CMP: 'cmp',
-
             IrOpcode.ASSIGN_CALL: 'call',
 
             IrOpcode.ASSIGN_PHI: 'phi',
@@ -92,23 +90,26 @@ class Printer:
             return f'{self.print_operand(ins.oprs[0])} = {self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[1])}'
 
         elif ins.op in [
-            IrOpcode.CMP,
             IrOpcode.WRITE,
         ]:
             return f'{self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[0])}, {self.print_operand(ins.oprs[1])}'
 
         elif ins.op in [
             IrOpcode.JMP,
+            IrOpcode.RET,
+            IrOpcode.UNLOAD
+        ]:
+            return f'{self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[0])}'
+
+        elif ins.op in [
             IrOpcode.JE,
             IrOpcode.JNE,
             IrOpcode.JL,
             IrOpcode.JLE,
             IrOpcode.JG,
             IrOpcode.JGE,
-            IrOpcode.RET,
-            IrOpcode.UNLOAD
         ]:
-            return f'{self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[0])}'
+            return f'{self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[0])}, {self.print_operand(ins.oprs[1])}, {self.print_operand(ins.oprs[2])}'
 
         elif ins.op == IrOpcode.ASSIGN_PHI:
             return f'{self.print_operand(ins.oprs[0])} = phi({", ".join(map(self.print_operand, ins.extra))})'
