@@ -5,11 +5,28 @@ from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 
 code = """
-short buffer[0x1000];
+typedef struct device {
+    int id;
+    int vendor;
+} device_t;
 
-int* get_from_buffer(int index) {
-    int a = 123;
-    return &index + &a;
+typedef struct hwdev {
+    int last;
+    int id;
+    int vendor;
+} hwdev_t;
+
+int dev_count = 0;
+device_t devs[20];
+
+void search_for_devices() {
+    hwdev_t* devbase = (void*)0x5200;
+    
+    while (!devbase->last) {
+        devs[dev_count].id = devbase->id;
+        devs[dev_count].vendor = devbase->vendor;
+        devbase++;
+    }
 }
 """
 
@@ -18,13 +35,13 @@ parser = Parser(code)
 parser.parse()
 assert not parser.got_errors
 
-print('\n'.join(map(str, parser.func_list)))
+# print('\n'.join(map(str, parser.func_list)))
 
 # Optimize the AST
 opt = Optimizer(parser)
 opt.optimize()
 
-print('\n'.join(map(str, opt.parser.func_list)))
+# print('\n'.join(map(str, opt.parser.func_list)))
 
 # Now we need to translate it
 trans = IrTranslator(parser)

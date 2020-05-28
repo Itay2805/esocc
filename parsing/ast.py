@@ -67,7 +67,7 @@ class ExprNop(Expr):
         return True
 
     def __str__(self, ident=''):
-        return ''
+        return '(nop)'
 
     def __eq__(self, other):
         return isinstance(other, ExprNop)

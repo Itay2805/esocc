@@ -108,7 +108,7 @@ class Dcpu16Translator:
                 print(f'.blk{blk.get_id()}')
 
             # Translate the block's instructions
-            last_inst = None
+            last_cmp_in_block = None
             for inst in blk.get_instructions():
                 print(f'  # {Printer().print_instruction(inst)}')
 
@@ -235,29 +235,29 @@ class Dcpu16Translator:
 
                 elif inst.op == IrOpcode.CMP:
                     # TODO: better handling
-                    pass
+                    last_cmp_in_block = inst
 
                 elif inst.op == IrOpcode.JMP:
                     print(f'\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JE:
-                    assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFE {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
+                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
+                    print(f'\tIFE {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JNE:
-                    assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFN {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
+                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
+                    print(f'\tIFN {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JL:
-                    assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFL {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
+                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
+                    print(f'\tIFL {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JG:
-                    assert last_inst is not None and last_inst.op == IrOpcode.CMP, "Compare support is limited in dcpu16 to having it before every instruction"
-                    print(f'\tIFG {self._translate_operand(last_inst.oprs[0], True)}, {self._translate_operand(last_inst.oprs[1], True)}')
+                    assert last_cmp_in_block is not None, "Compare support is limited in dcpu16 to having it in the same block"
+                    print(f'\tIFG {self._translate_operand(last_cmp_in_block.oprs[0], True)}, {self._translate_operand(last_cmp_in_block.oprs[1], True)}')
                     print(f'\t\tSET PC, {dest}')
 
                 # TODO: JGE and JLE
@@ -360,8 +360,6 @@ class Dcpu16Translator:
                     pass
                 else:
                     assert False, "Unknown instruction"
-
-                last_inst = inst
 
     def _translate_operand(self, opr, deref):
         """

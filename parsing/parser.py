@@ -173,7 +173,7 @@ class Parser(Tokenizer):
         elif isinstance(t1, CInteger) and isinstance(t2, CInteger):
             return True
         elif isinstance(t1, CPointer) and (isinstance(t2, CPointer) or (isinstance(t2, CArray))):
-            if t1.type != t2.type:
+            if t2.type != CVoid() and t1.type != CVoid() and t1.type != t2.type:
                 self.report_warn(f'{action} from incompatible pointer type', e2.pos)
             return True
         else:
