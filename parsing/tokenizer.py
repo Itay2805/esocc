@@ -103,6 +103,19 @@ class SymbolToken(Token):
         return f'<SymbolToken: value={repr(self.value)}>'
 
 
+class StringToken(Token):
+
+    def __init__(self, pos: CodePosition, value: str):
+        super(StringToken, self).__init__(pos)
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+    def __repr__(self):
+        return f'<StringToken: value={repr(self.value)}>'
+
+
 class Tokenizer:
 
     def __init__(self, stream: str, filename: str = "<unknown>"):
@@ -360,8 +373,51 @@ class Tokenizer:
             else:
                 self.token = IdentToken(pos, value)
 
+        # String literal
+        elif self.stream[0] == '"':
+            self._inc_stream(1)
+
+            ESCAPES = {
+                'a': '\a',
+                'b': '\b',
+                'e': '\x1b',
+                'f': '\f',
+                'n': '\n',
+                'r': '\r',
+                't': '\t',
+                'v': '\v',
+                '\\': '\\',
+                '\'': '\'',
+                '"': '"',
+                '?': '?',
+            }
+
+            val = ""
+            while self.stream[0] != '"':
+                if self.stream[0] == '\\':
+                    self._inc_stream(1)
+                    if self.stream[0] in ESCAPES:
+                        val += ESCAPES[self.stream[0]]
+                        self._inc_stream(1)
+
+                    # Hex constant
+                    elif self.stream[0] == 'x':
+                        val += chr(int(self.stream[0] + self.stream[1], 16))
+                        self._inc_stream(2)
+
+                    else:
+                        # TODO: show warning
+                        val += self.stream[0]
+                        self._inc_stream(1)
+                else:
+                    val += self.stream[0]
+                    self._inc_stream(1)
+            self._inc_stream(1)
+
+            self.token = StringToken(pos, val)
+
         # Special characters
-        elif self.stream[0] in '()[]{};\'",.:/*-+!%&<>=~^|?;':
+        elif self.stream[0] in '()[]{};\',.:/*-+!%&<>=~^|?;#':
 
             # Three character symbols
             if len(self.stream) > 2 and self.stream[:3] in [

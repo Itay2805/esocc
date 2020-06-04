@@ -1,67 +1,124 @@
+import os
+import sys
+import pcpp
+import argparse
+import pickle
+from io import StringIO
+
 from parsing.parser import Parser
+from parsing.types import StorageClass
 from parsing.optimizer import Optimizer
 from parsing.ir_translator import IrTranslator
-from parsing.types import StorageClass
+
 from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
+
 from asm.dcpu16.peephole import PeepholeOptimizer
 
-code = """
-typedef struct device {
-    int id;
-    int vendor;
-} device_t;
 
-void search_for_devices(device_t* device) {
-    int c = 54, d = 123;
-    device->id = device->vendor + 5 + c + d;
-}
-"""
+def main():
+    parser = argparse.ArgumentParser(description="Esoteric C compiler")
+    parser.add_argument('infiles', metavar='infile', type=str, nargs='+', help="Input files, can be either C or ASM")
+    parser.add_argument('-o', dest='outfile', metavar='outfile', type=str, default='a.out', required=False, help="Place the output into <outfile>")
+    parser.add_argument('-E', dest='preprocess_only', action='store_const', const=True, default=False, help="Preprocess only; do not compile, assemble or link.")
+    parser.add_argument('-S', dest='compile_only', action='store_const', const=True, default=False, help="Compile only; do not assemble or link.")
+    parser.add_argument('-c', dest='assembly_only', action='store_const', const=True, default=False, help="Compile and assemble, but do not link.")
+    parser.add_argument('-D', dest='defines', metavar='macro[=val]', nargs=1, action='append', help='Predefine name as a macro [with value]')
+    parser.add_argument('-I', dest='includes', metavar='path', nargs=1, action='append', help="Path to search for unfound #include's")
+    args = parser.parse_args()
 
-# Parse the code into an ast
-parser = Parser(code)
-parser.parse()
-assert not parser.got_errors
+    ################################################
+    # preprocess all files
+    ################################################
 
-# print('\n'.join(map(str, parser.func_list)))
+    preprocessor = pcpp.Preprocessor()
+    preprocessor.add_path('.')
+    if args.includes is not None:
+        for path in args.includes:
+            preprocessor.add_path(path)
 
-# Optimize the AST
-opt = Optimizer(parser)
-opt.optimize()
+    # TODO: pass defines
 
-print('\n'.join(map(str, opt.parser.func_list)))
+    files = []
+    asms = []
+    objects = []
+    for file in args.infiles:
+        if file.endswith('.c'):
+            preprocessor.parse(open(file), file)
+            s = StringIO()
+            preprocessor.write(s)
+            code = s.getvalue()
+            files.append((code, file))
 
-# Now we need to translate it
-trans = IrTranslator(parser)
-trans.translate()
+        elif file.endswith('.s'):
+            asms.append((file, open(file).read()))
 
-printer = Printer()
-for func in trans.proc_list:
-    for inst in func.get_body():
-        print(printer.print_instruction(inst))
+        elif file.endswith('.o'):
+            object = pickle.Unpickler(open(file)).load()
+            objects.append((object, file))
 
-code_trans = Dcpu16Translator()
-for proc in trans.proc_list:
-    code_trans.translate_procedure(proc)
-asm = code_trans.get_asm()
-
-optimizer = PeepholeOptimizer()
-asm = optimizer.optimize(asm)
-
-for func in parser.func_list:
-    if func.prototype:
-        asm += f'\n.extern {func.name}\n'
-
-for var in parser.global_vars:
-    if var.storage == StorageClass.EXTERN:
-        asm += f'\n.extern {var.ident.name}\n'
-    else:
-        if var.storage != StorageClass.STATIC:
-            asm += f'\n.global {var.ident.name}\n'
-        asm += f'{var.ident.name}:\n'
-        if var.value is None:
-            asm += f'\t.fill {var.typ.sizeof()}, 0\n'
         else:
-            asm += f'\t.dw {var.value}\n'
+            assert False, f"Unknown file extension {file}"
 
-print(asm)
+    if args.preprocess_only:
+        for code, file in files:
+            print(code)
+        return
+
+    for code, file in files:
+        # Parse the code into an ast
+        parser = Parser(code, filename=file)
+        parser.parse()
+        assert not parser.got_errors
+
+        # print('\n'.join(map(str, parser.func_list)))
+
+        # Optimize the AST
+        opt = Optimizer(parser)
+        opt.optimize()
+
+        # Now we need to translate it
+        trans = IrTranslator(parser)
+        trans.translate()
+
+        code_trans = Dcpu16Translator()
+        for proc in trans.proc_list:
+            code_trans.translate_procedure(proc)
+        asm = code_trans.get_asm()
+
+        optimizer = PeepholeOptimizer()
+        asm = optimizer.optimize(asm)
+
+        for func in parser.func_list:
+            if func.prototype:
+                asm += f'\n.extern {func.name}\n'
+
+        for var in parser.global_vars:
+            if var.storage == StorageClass.EXTERN:
+                asm += f'\n.extern {var.ident.name}\n'
+            else:
+                if var.storage != StorageClass.STATIC:
+                    asm += f'\n.global {var.ident.name}\n'
+                asm += f'{var.ident.name}:\n'
+                if var.value is None:
+                    asm += f'\t.fill {var.typ.sizeof()}, 0\n'
+                else:
+                    asm += f'\t.dw {var.value}\n'
+
+        asms.append((asm, file))
+
+    if args.assembly_only:
+        for asm, file in asms:
+            if file.endswith('.c'):
+                with open(file[:-2] + '.s', 'w') as f:
+                    f.write(asm)
+        return
+
+    for asm, file in asms:
+        pass
+
+    
+
+
+if __name__ == '__main__':
+    main()

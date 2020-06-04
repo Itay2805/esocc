@@ -37,6 +37,7 @@ class Dcpu16Translator:
         self._stored_lrs = []
         self._loaded_lrs = {}
         self._need_prologue = False
+        self._copied_params = {}
         self._register_mapping = ''
         self._generated_asm = ''
 
@@ -80,7 +81,7 @@ class Dcpu16Translator:
                 if inst.op == IrOpcode.STORE:
                     self._need_prologue = True
                     self._stored_lrs.append(tuple(inst.extra))
-
+        
         # This is filled out as we go
         # TODO: we should fill it out better so we only
         #       store and restore whatever that will be
@@ -213,17 +214,7 @@ class Dcpu16Translator:
                     self._append(f'\tSET {dest}, [{opr1}]')
 
                 elif inst.op == IrOpcode.WRITE:
-                    if dest.startswith('['):
-                        # GAAAHA we have to use a temp for this one
-                        # TODO: This is as ugly as things get
-                        if 'C' in self._to_store_on_call:
-                            self._append(f'\tSET PUSH, C')
-                        self._append(f'\tSET C, {dest}')
-                        self._append(f'\tSET [C], {opr1}')
-                        if 'C' in self._to_store_on_call:
-                            self._append(f'\tSET C, POP')
-                    else:
-                        self._append(f'\tSET [{dest}], {opr1}')
+                    self._append(f'\tSET [{dest}], {opr1}')
 
                 elif inst.op == IrOpcode.RET:
                     if dest != 'A':
@@ -390,10 +381,14 @@ class Dcpu16Translator:
             return f'.blk{opr.get_id()}'
         elif isinstance(opr, IrVar):
             if var_base(opr.get_id()) in self._proc.get_params():
-                if self._need_prologue:
-                    return f'[J + {self._proc.get_params().index(var_base(opr.get_id())) + 2}]'
+                index = self._proc.get_params().index(var_base(opr.get_id()))
+                if index in self._copied_params:
+                    return self._copied_params[index]
                 else:
-                    return f'[SP + {self._proc.get_params().index(var_base(opr.get_id())) + 2}]'
+                    if self._need_prologue:
+                        return f'[J + {index + 2}]'
+                    else:
+                        return f'[SP + {index + 2}]'
             else:
                 reg = self._register_mapping[self._reg_res.get_color(opr.get_id())]
                 if reg in 'ABC' and reg not in self._to_store_on_call:

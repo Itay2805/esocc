@@ -8,6 +8,7 @@ SET_ADDSUB_DEREF_2 = re.compile("\tSET (?P<tmp_reg>A|B|C|X|Y|Z|I|J|SP), (?P<targ
 TWO_SAME_OPS = re.compile("\t(?P<operation>ADD|SUB|MUL) (?P<target>A|B|C|X|Y|Z|I|J|SP), (?P<constant_1>\d+)\n\t(?P=operation) (?P=target), (?P<constant_2>\d+)")
 DEAD_SET = re.compile("\t.+ (?P<destination>A|B|C|X|Y|Z|I|J|SP), .+\n\t(?P<expression>SET (?P=destination), .*)")
 
+
 class PeepholeOptimizer:
 
     def __init__(self):
