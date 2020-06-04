@@ -1,6 +1,7 @@
 from parsing.parser import Parser
 from parsing.optimizer import Optimizer
 from parsing.ir_translator import IrTranslator
+from parsing.types import StorageClass
 from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 from asm.dcpu16.peephole import PeepholeOptimizer
@@ -43,7 +44,7 @@ assert not parser.got_errors
 opt = Optimizer(parser)
 opt.optimize()
 
-print('\n'.join(map(str, opt.parser.func_list)))
+# print('\n'.join(map(str, opt.parser.func_list)))
 
 # Now we need to translate it
 trans = IrTranslator(parser)
@@ -54,15 +55,23 @@ for proc in trans.proc_list:
     code_trans.translate_procedure(proc)
 asm = code_trans.get_asm()
 
-print("UNOPTIMIZED ASM:")
-print("----------------")
-print(asm)
-print("----------------")
-
 optimizer = PeepholeOptimizer()
 asm = optimizer.optimize(asm)
 
-print("OPTIMIZED ASM:")
-print("----------------")
+for func in parser.func_list:
+    if func.prototype:
+        asm += f'\n.extern {func.name}\n'
+
+for var in parser.global_vars:
+    if var.storage == StorageClass.EXTERN:
+        asm += f'\n.extern {var.ident.name}\n'
+    else:
+        if var.storage != StorageClass.STATIC:
+            asm += f'\n.global {var.ident.name}\n'
+        asm += f'{var.ident.name}:\n'
+        if var.value is None:
+            asm += f'\t.fill {var.typ.sizeof()}, 0\n'
+        else:
+            asm += f'\t.dw {var.value}\n'
+
 print(asm)
-print("----------------")

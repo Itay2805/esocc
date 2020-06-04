@@ -11,7 +11,7 @@ A C compiler targeting esoteric architectures (for fun and profit).
     * only named, anonymous will be added eventually
 * variables 
     * only at start of function
-* global variables
+* global variables (and arrays)
 * fixed size arrays
 * All of the arithmetic/bitwise operators
 * while loops with break and continue
