@@ -213,7 +213,17 @@ class Dcpu16Translator:
                     self._append(f'\tSET {dest}, [{opr1}]')
 
                 elif inst.op == IrOpcode.WRITE:
-                    self._append(f'\tSET [{dest}], {opr1}')
+                    if dest.startswith('['):
+                        # GAAAHA we have to use a temp for this one
+                        # TODO: This is as ugly as things get
+                        if 'C' in self._to_store_on_call:
+                            self._append(f'\tSET PUSH, C')
+                        self._append(f'\tSET C, {dest}')
+                        self._append(f'\tSET [C], {opr1}')
+                        if 'C' in self._to_store_on_call:
+                            self._append(f'\tSET C, POP')
+                    else:
+                        self._append(f'\tSET [{dest}], {opr1}')
 
                 elif inst.op == IrOpcode.RET:
                     if dest != 'A':

@@ -12,24 +12,9 @@ typedef struct device {
     int vendor;
 } device_t;
 
-typedef struct hwdev {
-    int last;
-    int id;
-    int vendor;
-} hwdev_t;
-
-int dev_count = 0;
-
-device_t devs[20];
-
-void search_for_devices() {
-    hwdev_t* devbase = (void*)0x5200;
-    
-    while (!devbase->last) {
-        devs[dev_count].id = devbase->id;
-        devs[dev_count].vendor = devbase->vendor;
-        devbase++;
-    }
+void search_for_devices(device_t* device) {
+    int c = 54, d = 123;
+    device->id = device->vendor + 5 + c + d;
 }
 """
 
@@ -44,11 +29,16 @@ assert not parser.got_errors
 opt = Optimizer(parser)
 opt.optimize()
 
-# print('\n'.join(map(str, opt.parser.func_list)))
+print('\n'.join(map(str, opt.parser.func_list)))
 
 # Now we need to translate it
 trans = IrTranslator(parser)
 trans.translate()
+
+printer = Printer()
+for func in trans.proc_list:
+    for inst in func.get_body():
+        print(printer.print_instruction(inst))
 
 code_trans = Dcpu16Translator()
 for proc in trans.proc_list:

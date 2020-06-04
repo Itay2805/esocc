@@ -2,6 +2,9 @@ from typing import *
 from enum import Enum, auto
 
 
+NATIVE_INTEGER_SIZE = 16
+
+
 class StorageClass(Enum):
     AUTO = auto()
     STATIC = auto()
@@ -37,17 +40,25 @@ class CInteger(CType):
         return False
 
     def sizeof(self):
-        return self.bits // 16
+        return self.bits // NATIVE_INTEGER_SIZE
 
     def __str__(self):
         if not self.signed:
-            if self.bits == 16:
+            if self.bits == NATIVE_INTEGER_SIZE:
                 return 'unsigned int'
+            elif self.bits == 8:
+                return 'unsigned char'
+            elif self.bits == 16:
+                return 'unsigned short'
             else:
                 assert False
         else:
-            if self.bits == 16:
+            if self.bits == NATIVE_INTEGER_SIZE:
                 return 'int'
+            elif self.bits == 8:
+                return 'char'
+            elif self.bits == 16:
+                return 'short'
             else:
                 assert False
 
