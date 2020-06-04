@@ -163,9 +163,14 @@ class IrTranslator:
 
         elif isinstance(expr, ExprCopy):
             src = self._translate_to_operand(expr.source)
-            dst = self._translate_to_operand(expr.destination)
 
-            self._asm.emit_assign(dst, src)
+            if isinstance(expr.destination, ExprDeref):
+                opr = self._translate_to_operand(expr.destination.expr)
+                self._asm.emit_write(opr, src)
+            elif isinstance(expr.destination, ExprIdent):
+                self._asm.emit_assign(self._translate_to_operand(expr.destination), src)
+            else:
+                assert False, f'{expr} - [{type(expr)}]'
 
             if dest is not None:
                 self._asm.emit_assign(dest, src)

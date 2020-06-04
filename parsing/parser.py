@@ -306,20 +306,26 @@ class Parser(Tokenizer):
                     s = 'increment' if op == '+' else 'decrement'
                     self.report_error(f'lvalue required asm {s} operand', pos)
 
-                self._check_binary_op(op, pos, x, ExprNumber(1, CInteger(16, False)))
+                typ = x.resolve_type(self)
+                if isinstance(typ, CPointer):
+                    step_size = typ.type.sizeof()
+                else:
+                    step_size = 1
+
+                self._check_binary_op(op, pos, x, ExprNumber(step_size, CInteger(16, False)))
 
                 temp = self._temp(x.resolve_type(self))
                 if x.is_pure(self):
                     x = ExprComma(self._combine_pos(x.pos, pos))\
                         .add(ExprCopy(x, temp))\
-                        .add(ExprCopy(ExprBinary(x, op, ExprNumber(1, CInteger(16, False))), x))\
+                        .add(ExprCopy(ExprBinary(x, op, ExprNumber(step_size, CInteger(16, False))), x))\
                         .add(temp)
                 else:
                     temp2 = self._temp(x.resolve_type(self))
                     x = ExprComma(self._combine_pos(x.pos, pos))\
                         .add(ExprCopy(ExprAddrof(x), temp))\
                         .add(ExprCopy(ExprDeref(temp), temp2))\
-                        .add(ExprCopy(ExprBinary(ExprDeref(temp), op, ExprNumber(1, CInteger(16, False))), ExprDeref(temp)))\
+                        .add(ExprCopy(ExprBinary(ExprDeref(temp), op, ExprNumber(step_size, CInteger(16, False))), ExprDeref(temp)))\
                         .add(temp2)
 
             elif self.match_token('['):
@@ -335,10 +341,10 @@ class Parser(Tokenizer):
                     self.report_error('array subscript is not an integer', pos)
 
                 multiply = 1
-                if isinstance(arr_type, CPointer):
+                if isinstance(arr_type, CPointer) or isinstance(arr_type, CArray):
                     multiply = arr_type.type.sizeof()
 
-                x = ExprDeref(ExprBinary(ExprAddrof(x), '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
+                x = ExprDeref(ExprBinary(x, '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
 
             elif self.match_token('.'):
                 member, mempos = self.expect_ident()
@@ -348,10 +354,11 @@ class Parser(Tokenizer):
                 if not isinstance(typ, CStruct):
                     self.report_fatal_error(f'request for member `{member}` in something not a structure or union', pos)
 
-                if member not in typ.items:
+                memtyp = typ.get_field(member)
+                if memtyp is None:
                     self.report_fatal_error(f'`{typ}` has no member named `{member}`')
 
-                x = ExprDeref(ExprCast(ExprBinary(ExprAddrof(x), '+', ExprNumber(typ.offsetof(member))), CPointer(typ.items[member])), self._combine_pos(x.pos, mempos))
+                x = ExprDeref(ExprCast(ExprBinary(ExprAddrof(x), '+', ExprNumber(typ.offsetof(member))), CPointer(memtyp)), self._combine_pos(x.pos, mempos))
 
             elif self.match_token('->'):
                 member, mempos = self.expect_ident()
@@ -366,10 +373,11 @@ class Parser(Tokenizer):
                 if not isinstance(typ, CStruct):
                     self.report_fatal_error(f'request for member `{member}` in something not a structure or union', pos)
 
-                if member not in typ.items:
+                memtyp = typ.get_field(member)
+                if memtyp is None:
                     self.report_fatal_error(f'{typ} has not member named `{member}`')
 
-                x = ExprDeref(ExprCast(ExprBinary(ExprAddrof(x), '+', ExprNumber(typ.offsetof(member))), CPointer(typ.items[member])), self._combine_pos(x.pos, mempos))
+                x = ExprDeref(ExprCast(ExprBinary(x, '+', ExprNumber(typ.offsetof(member))), CPointer(memtyp)), self._combine_pos(x.pos, mempos))
 
             elif self.match_token('('):
                 args = []
@@ -727,7 +735,7 @@ class Parser(Tokenizer):
                         cur_typ = self._parse_type_postfix(cur_typ, field_pos)
 
                         # add it
-                        typ.items[field_name] = cur_typ
+                        typ.items.append((field_name, cur_typ))
 
                         # Check if has next
                         if self.match_token(';'):

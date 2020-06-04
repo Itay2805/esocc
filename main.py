@@ -3,6 +3,7 @@ from parsing.optimizer import Optimizer
 from parsing.ir_translator import IrTranslator
 from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
+from asm.dcpu16.peephole import PeepholeOptimizer
 
 code = """
 typedef struct device {
@@ -17,6 +18,7 @@ typedef struct hwdev {
 } hwdev_t;
 
 int dev_count = 0;
+
 device_t devs[20];
 
 void search_for_devices() {
@@ -41,7 +43,7 @@ assert not parser.got_errors
 opt = Optimizer(parser)
 opt.optimize()
 
-# print('\n'.join(map(str, opt.parser.func_list)))
+print('\n'.join(map(str, opt.parser.func_list)))
 
 # Now we need to translate it
 trans = IrTranslator(parser)
@@ -50,3 +52,17 @@ trans.translate()
 code_trans = Dcpu16Translator()
 for proc in trans.proc_list:
     code_trans.translate_procedure(proc)
+asm = code_trans.get_asm()
+
+print("UNOPTIMIZED ASM:")
+print("----------------")
+print(asm)
+print("----------------")
+
+optimizer = PeepholeOptimizer()
+asm = optimizer.optimize(asm)
+
+print("OPTIMIZED ASM:")
+print("----------------")
+print(asm)
+print("----------------")

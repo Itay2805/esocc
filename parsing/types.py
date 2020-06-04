@@ -152,37 +152,37 @@ class CStruct(CType):
     def __init__(self, name: str, name_pos):
         super(CStruct, self).__init__()
         self.name = name
-        self.packed = 0
         self.union = False
         self.pos = name_pos
-        self.items = {}  # type: Dict[str, CType]
+        self.items = []  # type: List[Tuple[str, CType]]
+
+    def get_field(self, name):
+        for item, typ in self.items:
+            if item == name:
+                return typ
+        return None
 
     def offsetof(self, name):
         if self.union:
             return 0
         else:
             offset = 0
-            for item in self.items:
+            for item, typ in self.items:
                 if item == name:
                     return offset
-
-                if self.packed:
-                    offset += self.items[item].sizeof()
-                else:
-                    offset += _align(offset, self.items[item].sizeof()) + self.items[item].sizeof()
-
+                offset += typ.sizeof()
             return None
 
     def sizeof(self):
         s = 0
         if self.union:
             # For union the size is the max size
-            for name in self.items:
-                s = max(self.items[name].sizeof(), s)
+            for name, typ in self.items:
+                s = max(typ.sizeof(), s)
         else:
-            # For struct the size is the su
-            for name in self.items:
-                s += self.items[name].sizeof()
+            # For struct the size is the sum
+            for name, typ in self.items:
+                s += typ.sizeof()
         return s
 
     def is_complete(self):

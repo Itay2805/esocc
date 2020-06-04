@@ -38,6 +38,13 @@ class Dcpu16Translator:
         self._loaded_lrs = {}
         self._need_prologue = False
         self._register_mapping = ''
+        self._generated_asm = ''
+
+    def get_asm(self):
+        return self._generated_asm
+
+    def _append(self, text):
+        self._generated_asm += text + '\n'
 
     def translate_procedure(self, proc: Procedure):
         """
@@ -46,7 +53,7 @@ class Dcpu16Translator:
         self._proc = proc
 
         if self._proc.is_exported():
-            print(f'.global {self._proc.get_name()}')
+            self._append(f'.global {self._proc.get_name()}')
 
         # build control flow graph
         self._cfg = make_cfg(proc.get_body())
@@ -58,9 +65,6 @@ class Dcpu16Translator:
         # perform register allocation
         reg_alloc = BasicRegisterAllocator()
         self._reg_res = reg_alloc.allocate(self._cfg, Dcpu16Translator.DCPU16_NUM_GP_REGISTERS)
-
-        for blk in self._cfg.get_blocks():
-            print(Printer().print_basic_block(blk))
 
         # This is the color -> register map
         self._register_mapping = 'ABCXYZI'
@@ -92,25 +96,25 @@ class Dcpu16Translator:
                 self._to_restore_on_exit.append(reg)
 
         # Print prologue
-        print(f'{proc.get_name()}:')
+        self._append(f'{proc.get_name()}:')
         if self._need_prologue:
-            print(f'\tSET PUSH, J')
-            print(f'\tSET J, SP')
+            self._append(f'\tSET PUSH, J')
+            self._append(f'\tSET J, SP')
 
             if len(self._stored_lrs) > 0:
-                print(f'\tSUB SP, {len(self._stored_lrs)}')
+                self._append(f'\tSUB SP, {len(self._stored_lrs)}')
 
         # start converting code
         for blk in self._cfg.get_blocks():
             # add a local label for the block
             # if anyone jumps to it
             if len(blk.get_prev()) != 0:
-                print(f'.blk{blk.get_id()}')
+                self._append(f'.blk{blk.get_id()}')
 
             # Translate the block's instructions
             last_cmp_in_block = None
             for inst in blk.get_instructions():
-                print(f'  # {Printer().print_instruction(inst)}')
+                # self._append(f'  # {Printer().print_instruction(inst)}')
 
                 dest = self._translate_operand(inst.oprs[0], True)
                 opr1 = self._translate_operand(inst.oprs[1], True)
@@ -122,14 +126,14 @@ class Dcpu16Translator:
                         opr1 = opr2
                         opr2 = tmp
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tADD {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tADD {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SUB or inst.op == IrOpcode.ASSIGN_SIGNED_SUB:
                     assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tSUB {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tSUB {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_MUL:
                     if opr2 == dest:
@@ -137,8 +141,8 @@ class Dcpu16Translator:
                         opr1 = opr2
                         opr2 = tmp
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tMUL {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tMUL {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SIGNED_MUL:
                     if opr2 != 1 and opr1 != 1:
@@ -147,32 +151,32 @@ class Dcpu16Translator:
                             opr1 = opr2
                             opr2 = tmp
                         if dest != opr1:
-                            print(f'\tSET {dest}, {opr1}')
-                        print(f'\tMLI {dest}, {opr2}')
+                            self._append(f'\tSET {dest}, {opr1}')
+                        self._append(f'\tMLI {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_DIV:
                     assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tDIV {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tDIV {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SIGNED_DIV:
                     assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tDIV {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tDIV {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_MOD:
                     assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tMOD {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tMOD {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_SIGNED_MOD:
                     assert opr2 != dest, "TODO: handle this case"
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tMDI {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tMDI {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_OR:
                     if opr2 == dest:
@@ -180,8 +184,8 @@ class Dcpu16Translator:
                         opr1 = opr2
                         opr2 = tmp
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tBOR {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tBOR {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_AND:
                     if opr2 == dest:
@@ -189,8 +193,8 @@ class Dcpu16Translator:
                         opr1 = opr2
                         opr2 = tmp
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tAND {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tAND {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN_XOR:
                     if opr2 == dest:
@@ -198,71 +202,71 @@ class Dcpu16Translator:
                         opr1 = opr2
                         opr2 = tmp
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
-                    print(f'\tXOR {dest}, {opr2}')
+                        self._append(f'\tSET {dest}, {opr1}')
+                    self._append(f'\tXOR {dest}, {opr2}')
 
                 elif inst.op == IrOpcode.ASSIGN:
                     if dest != opr1:
-                        print(f'\tSET {dest}, {opr1}')
+                        self._append(f'\tSET {dest}, {opr1}')
 
                 elif inst.op == IrOpcode.ASSIGN_READ:
-                    print(f'\tSET {dest}, [{opr1}]')
+                    self._append(f'\tSET {dest}, [{opr1}]')
 
                 elif inst.op == IrOpcode.WRITE:
-                    print(f'\tSET [{dest}], {opr1}')
+                    self._append(f'\tSET [{dest}], {opr1}')
 
                 elif inst.op == IrOpcode.RET:
                     if dest != 'A':
-                        print(f'\tSET A, {dest}')
+                        self._append(f'\tSET A, {dest}')
 
                     for rest in reversed(self._to_restore_on_exit):
-                        print(f'\tSET {rest}, POP')
+                        self._append(f'\tSET {rest}, POP')
 
                     if self._need_prologue:
-                        print('\tSET SP, J')
-                        print('\tSET J, POP')
-                    print('\tSET PC, POP')
+                        self._append('\tSET SP, J')
+                        self._append('\tSET J, POP')
+                    self._append('\tSET PC, POP')
 
                 elif inst.op == IrOpcode.RETN:
 
                     for rest in reversed(self._to_restore_on_exit):
-                        print(f'\tSET {rest}, POP')
+                        self._append(f'\tSET {rest}, POP')
 
                     if self._need_prologue:
-                        print('\tSET SP, J')
-                        print('\tSET J, POP')
-                    print('\tSET PC, POP')
+                        self._append('\tSET SP, J')
+                        self._append('\tSET J, POP')
+                    self._append('\tSET PC, POP')
 
                 elif inst.op == IrOpcode.JMP:
-                    print(f'\tSET PC, {dest}')
+                    self._append(f'\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JE:
-                    print(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JNE:
-                    print(f'\tIFN {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFN {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JL:
-                    print(f'\tIFL {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFL {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JG:
-                    print(f'\tIFG {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFG {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JGE:
-                    print(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
-                    print(f'\tIFG {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFG {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.JLE:
-                    print(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
-                    print(f'\tIFL {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
-                    print(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFE {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
+                    self._append(f'\tIFL {self._translate_operand(inst.oprs[1], True)}, {self._translate_operand(inst.oprs[2], True)}')
+                    self._append(f'\t\tSET PC, {dest}')
 
                 elif inst.op == IrOpcode.CALL or inst.op == IrOpcode.CALL_PTR:
 
@@ -271,21 +275,21 @@ class Dcpu16Translator:
                     #       we look at which of them is gonna
                     #       be used again later
                     for e in self._to_store_on_call:
-                        print(f'\tSET PUSH, {e}')
+                        self._append(f'\tSET PUSH, {e}')
 
                     for e in reversed(inst.extra):
-                        print(f'\tSET PUSH, {self._translate_operand(e, True)}')
+                        self._append(f'\tSET PUSH, {self._translate_operand(e, True)}')
 
                     if inst.op == IrOpcode.CALL:
-                        print(f'\tJSR {self._translate_operand(inst.oprs[0], False)}')
+                        self._append(f'\tJSR {self._translate_operand(inst.oprs[0], False)}')
                     else:
-                        print(f'\tJSR {self._translate_operand(inst.oprs[0], True)}')
+                        self._append(f'\tJSR {self._translate_operand(inst.oprs[0], True)}')
 
-                    print(f'\tSUB SP, {len(inst.extraR)}')
+                    self._append(f'\tSUB SP, {len(inst.extraR)}')
 
                     # restore registers that we need to
                     for e in reversed(self._to_store_on_call):
-                        print(f'\tSET {e}, POP')
+                        self._append(f'\tSET {e}, POP')
 
                 elif inst.op == IrOpcode.ASSIGN_CALL or inst.op == IrOpcode.ASSIGN_CALL_PTR:
 
@@ -295,45 +299,45 @@ class Dcpu16Translator:
                     #       be used again later
                     for e in self._to_store_on_call:
                         if e != dest:
-                            print(f'\tSET PUSH, {e}')
+                            self._append(f'\tSET PUSH, {e}')
 
                     for e in reversed(inst.extra):
-                        print(f'\tSET PUSH, {self._translate_operand(e, True)}')
+                        self._append(f'\tSET PUSH, {self._translate_operand(e, True)}')
 
                     if inst.op == IrOpcode.ASSIGN_CALL:
-                        print(f'\tJSR {self._translate_operand(inst.oprs[1], False)}')
+                        self._append(f'\tJSR {self._translate_operand(inst.oprs[1], False)}')
                     else:
-                        print(f'\tJSR {self._translate_operand(inst.oprs[1], True)}')
+                        self._append(f'\tJSR {self._translate_operand(inst.oprs[1], True)}')
 
-                    print(f'\tSUB SP, {len(inst.extra)}')
+                    self._append(f'\tSUB SP, {len(inst.extra)}')
 
                     # restore registers that we need to
                     for e in reversed(self._to_store_on_call):
                         if e != dest:
-                            print(f'\tSET {e}, POP')
+                            self._append(f'\tSET {e}, POP')
 
                     if dest != 'A':
-                        print(f'\tSET {dest}, A')
+                        self._append(f'\tSET {dest}, A')
 
                 elif inst.op == IrOpcode.STORE:
                     lr = tuple(inst.extra)
                     i = self._stored_lrs.index(lr)
-                    print(f'\tSET [J - {i + 1}], {dest}')
+                    self._append(f'\tSET [J - {i + 1}], {dest}')
 
                 elif inst.op == IrOpcode.LOAD:
                     lr = tuple(inst.extra)
                     i = self._stored_lrs.index(lr)
 
                     self._loaded_lrs[dest] = lr
-                    print(f'\tSET {dest}, [J - {i + 1}]')
+                    self._append(f'\tSET {dest}, [J - {i + 1}]')
                     pass
 
                 elif inst.op == IrOpcode.UNLOAD:
-                    lr = self._loaded_lrs[dest]
-                    del self._loaded_lrs[dest]
-                    i = self._stored_lrs.index(lr)
-
-                    print(f'\tSET [J - {i + 1}], {dest}')
+                    # lr = self._loaded_lrs[dest]
+                    # del self._loaded_lrs[dest]
+                    # i = self._stored_lrs.index(lr)
+                    #
+                    # self._append(f'\tSET [J - {i + 1}], {dest}')
                     pass
 
                 elif inst.op == IrOpcode.ASSIGN_ADDROF:
@@ -341,21 +345,21 @@ class Dcpu16Translator:
                         lr = tuple(inst.extra)
                         i = self._stored_lrs.index(lr)
 
-                        print(f'\tSET {dest}, J')
-                        print(f'\tADD {dest}, {i + 1}')
+                        self._append(f'\tSET {dest}, J')
+                        self._append(f'\tADD {dest}, {i + 1}')
                     else:
                         opr = inst.oprs[1]
                         if isinstance(opr, IrVar):
                             if var_base(opr.get_id()) in self._proc.get_params():
                                 if self._need_prologue:
-                                    print(f'\tSET {dest}, J')
+                                    self._append(f'\tSET {dest}, J')
                                 else:
-                                    print(f'\tSET {dest}, SP')
-                                print(f'\tADD {dest}, {self._proc.get_params().index(var_base(opr.get_id())) + 2}')
+                                    self._append(f'\tSET {dest}, SP')
+                                self._append(f'\tADD {dest}, {self._proc.get_params().index(var_base(opr.get_id())) + 2}')
                             else:
                                 assert False, "Tried to addrof a variable which is not on the stack"
                         elif isinstance(opr, IrName):
-                            print(f'\tSET {dest}, {opr.get_name()}')
+                            self._append(f'\tSET {dest}, {opr.get_name()}')
                         else:
                             assert False, f"Invalid operand {opr} for addrof"
                 elif inst.op == IrOpcode.ASSIGN_PHI:
