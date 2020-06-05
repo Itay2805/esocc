@@ -110,7 +110,7 @@ class Dcpu16Translator:
             # add a local label for the block
             # if anyone jumps to it
             if len(blk.get_prev()) != 0:
-                self._append(f'.blk{blk.get_id()}')
+                self._append(f'_blk{blk.get_id()}')
 
             # Translate the block's instructions
             last_cmp_in_block = None

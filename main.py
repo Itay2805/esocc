@@ -14,7 +14,7 @@ from ir.printer import Printer
 from ir.translate.dcpu16_translator import Dcpu16Translator
 
 from asm.dcpu16.peephole import PeepholeOptimizer
-
+from asm.dcpu16.assembler import Assembler
 
 def main():
     parser = argparse.ArgumentParser(description="Esoteric C compiler")
@@ -69,30 +69,36 @@ def main():
         # Parse the code into an ast
         parser = Parser(code, filename=file)
         parser.parse()
+        if parser.got_errors:
+            exit(1)
         assert not parser.got_errors
-
-        # print('\n'.join(map(str, parser.func_list)))
 
         # Optimize the AST
         opt = Optimizer(parser)
         opt.optimize()
 
-        # Now we need to translate it
+        # Now we need to translate it into
+        # the ir code
         trans = IrTranslator(parser)
         trans.translate()
 
+        # Now run it through the ir translator for
+        # the dcpu16
         code_trans = Dcpu16Translator()
         for proc in trans.proc_list:
             code_trans.translate_procedure(proc)
         asm = code_trans.get_asm()
 
+        # Run the code through the peephole optimizer
         optimizer = PeepholeOptimizer()
         asm = optimizer.optimize(asm)
 
+        # Add externs for any unknown label
         for func in parser.func_list:
             if func.prototype:
                 asm += f'\n.extern {func.name}\n'
 
+        # Add global vars definitions
         for var in parser.global_vars:
             if var.storage == StorageClass.EXTERN:
                 asm += f'\n.extern {var.ident.name}\n'
@@ -115,9 +121,11 @@ def main():
         return
 
     for asm, file in asms:
-        pass
-
-    
+        asm = Assembler(asm, file)
+        asm.parse()
+        if not asm.got_errors:
+            for word in asm.get_words():
+                print(hex(word)[2:].zfill(4))
 
 
 if __name__ == '__main__':
