@@ -286,7 +286,8 @@ class Dcpu16Translator:
                     else:
                         self._append(f'\tJSR {self._translate_operand(inst.oprs[0], True)}')
 
-                    self._append(f'\tSUB SP, {len(inst.extraR)}')
+                    if len(inst.extra) > 0:
+                        self._append(f'\tSUB SP, {len(inst.extra)}')
 
                     # restore registers that we need to
                     for e in reversed(self._to_store_on_call):
@@ -310,7 +311,8 @@ class Dcpu16Translator:
                     else:
                         self._append(f'\tJSR {self._translate_operand(inst.oprs[1], True)}')
 
-                    self._append(f'\tSUB SP, {len(inst.extra)}')
+                    if len(inst.extra) > 0:
+                        self._append(f'\tSUB SP, {len(inst.extra)}')
 
                     # restore registers that we need to
                     for e in reversed(self._to_store_on_call):

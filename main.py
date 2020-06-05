@@ -22,7 +22,7 @@ def main():
     parser.add_argument('-o', dest='outfile', metavar='outfile', type=str, default='a.out', required=False, help="Place the output into <outfile>")
     parser.add_argument('-E', dest='preprocess_only', action='store_const', const=True, default=False, help="Preprocess only; do not compile, assemble or link.")
     parser.add_argument('-S', dest='compile_only', action='store_const', const=True, default=False, help="Compile only; do not assemble or link.")
-    parser.add_argument('-c', dest='assembly_only', action='store_const', const=True, default=False, help="Compile and assemble, but do not link.")
+    parser.add_argument('-c', dest='assemble_only', action='store_const', const=True, default=False, help="Compile and assemble, but do not link.")
     parser.add_argument('-D', dest='defines', metavar='macro[=val]', nargs=1, action='append', help='Predefine name as a macro [with value]')
     parser.add_argument('-I', dest='includes', metavar='path', nargs=1, action='append', help="Path to search for unfound #include's")
     args = parser.parse_args()
@@ -113,7 +113,7 @@ def main():
 
         asms.append((asm, file))
 
-    if args.assembly_only:
+    if args.compile_only:
         for asm, file in asms:
             if file.endswith('.c'):
                 with open(file[:-2] + '.s', 'w') as f:
@@ -126,6 +126,9 @@ def main():
         if not asm.got_errors:
             for word in asm.get_words():
                 print(hex(word)[2:].zfill(4))
+
+    if args.assemble_only:
+        return
 
 
 if __name__ == '__main__':

@@ -411,6 +411,8 @@ class Assembler(Tokenizer):
                 self._mark_label(val, self.token.pos)
                 self.next_token()
                 self.expect_token(':')
+            elif self.match_token('\n'):
+                continue
             else:
                 self._parse_instruction()
             self.expect_token('\n')
