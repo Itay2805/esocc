@@ -78,7 +78,7 @@ class IrTranslator:
         elif isinstance(expr, ExprBinary):
 
             if dest is not None:
-                if expr.op in '+-/*%' or expr.op in ['==']:
+                if expr.op in '+-/*%|&^' or expr.op in ['==']:
                     opr1 = self._translate_to_operand(expr.left)
                     opr2 = self._translate_to_operand(expr.right)
 
@@ -96,6 +96,15 @@ class IrTranslator:
 
                     elif expr.op == '%':
                         self._asm.emit_assign_mod(dest, opr1, opr2)
+
+                    elif expr.op == '|':
+                        self._asm.emit_assign_or(dest, opr1, opr2)
+
+                    elif expr.op == '&':
+                        self._asm.emit_assign_and(dest, opr1, opr2)
+
+                    elif expr.op == '^':
+                        self._asm.emit_assign_xor(dest, opr1, opr2)
 
                     elif expr.op == '==':
                         end = self._asm.make_label()

@@ -344,7 +344,10 @@ class Parser(Tokenizer):
                 if isinstance(arr_type, CPointer) or isinstance(arr_type, CArray):
                     multiply = arr_type.type.sizeof()
 
-                x = ExprDeref(ExprBinary(x, '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
+                if isinstance(arr_type, CArray):
+                    x = ExprDeref(ExprBinary(ExprAddrof(x), '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
+                else:
+                    x = ExprDeref(ExprBinary(x, '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
 
             elif self.match_token('.'):
                 member, mempos = self.expect_ident()
@@ -1085,21 +1088,7 @@ class Parser(Tokenizer):
 
     def parse(self):
         while not self.is_token(EofToken):
-            if self.match_token('#'):
-                val, pos = self.expect_ident()
-                if val == 'line':
-                    self.line = self.token.value
-                    self.expect_token(IntToken)
-                    filename = self.filename
-                    if self.is_token(StringToken):
-                        self.filename = self.token.value
-                        self.next_token()
-                else:
-                    self.report_warn(f'unknown directive `{val}` ignored', pos)
-                    while not self.match_token('\n'):
-                        self.next_token()
-
-            elif self.match_keyword('typedef'):
+            if self.match_keyword('typedef'):
                 typ, name, pos = self._parse_type_name()
 
                 if self._resolve_type(name) is not None:

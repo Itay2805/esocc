@@ -93,6 +93,15 @@ class Assembler:
     def emit_assign_mod(self, r: IrOperand, a: IrOperand, b: IrOperand):
         self._emit_basic3(IrOpcode.ASSIGN_MOD, r, a, b)
 
+    def emit_assign_or(self, r: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.ASSIGN_OR, r, a, b)
+
+    def emit_assign_and(self, r: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.ASSIGN_AND, r, a, b)
+
+    def emit_assign_xor(self, r: IrOperand, a: IrOperand, b: IrOperand):
+        self._emit_basic3(IrOpcode.ASSIGN_XOR, r, a, b)
+
     def emit_assign_read(self, r: IrOperand, a: IrOperand):
         self._emit_basic2(IrOpcode.ASSIGN_READ, r, a)
 

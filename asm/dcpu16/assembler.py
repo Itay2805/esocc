@@ -266,7 +266,7 @@ class Dcpu16Assembler(Tokenizer):
                 self.expect_token(']')
                 return 0x1E, val
             else:
-                assert False
+                assert False, self.token
         elif self.is_token(IntToken):
             val = self.token.value
             self.next_token()

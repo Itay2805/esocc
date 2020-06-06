@@ -270,6 +270,18 @@ class Tokenizer:
                         break
                     self._inc_stream()
 
+            elif len(self.stream) > 5 and self.stream.startswith('#line'):
+                self._inc_stream(len("#line "))
+                line = ''
+                while self.stream[0] != '\n':
+                    line += self.stream[0]
+                    self._inc_stream()
+                self._inc_stream()
+                line, file = line.split(' ', 1)
+                file = file[1:-1]
+                self.filename = file
+                self.line = int(line)
+
             # Nothing left to clear
             else:
                 break
