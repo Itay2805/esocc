@@ -12,6 +12,8 @@ from parsing.types import StorageClass
 from parsing.optimizer import Optimizer
 from parsing.ir_translator import IrTranslator
 
+from ir.printer import Printer
+
 # Dcpu16 related
 from ir.translate.dcpu16_translator import Dcpu16Translator
 from asm.dcpu16.peephole import Dcpu16PeepholeOptimizer
@@ -28,6 +30,10 @@ def main():
     parser.add_argument('-c', dest='assemble_only', action='store_const', const=True, default=False, help="Compile and assemble, but do not link.")
     parser.add_argument('-D', dest='defines', metavar='macro[=val]', nargs=1, action='append', help='Predefine name as a macro [with value]')
     parser.add_argument('-I', dest='includes', metavar='path', nargs=1, action='append', help="Path to search for unfound #include's")
+
+    parser.add_argument('--dump-ir', dest='dump_ir', action='store_const', const=True, default=False, help="Dump the IR into a file")
+    parser.add_argument('--dump-ast', dest='dump_ast', action='store_const', const=True, default=False, help="Dump the AST into a file")
+
     args = parser.parse_args()
 
     ################################################
@@ -89,10 +95,23 @@ def main():
         opt = Optimizer(parser)
         opt.optimize()
 
+        if args.dump_ast:
+            with open(file[:-2] + '.ast', 'w') as f:
+                for func in opt.parser.func_list:
+                    f.write(str(func) + '\n')
+
         # Now we need to translate it into
         # the ir code
         trans = IrTranslator(parser)
         trans.translate()
+
+        if args.dump_ir:
+            with open(file[:-2] + '.ir', 'w') as f:
+                p = Printer()
+                for proc in trans.proc_list:
+                    f.write(proc.get_name() + ":\n")
+                    for inst in proc.get_body():
+                        f.write('\t' + p.print_instruction(inst) + '\n')
 
         # Now run it through the ir translator for
         # the dcpu16

@@ -281,6 +281,8 @@ class Parser(Tokenizer):
             expr = self._use(val)
             if expr is None:
                 self.report_fatal_error(f'`{val}` undeclared', pos)
+            if isinstance(expr.resolve_type(self), CArray):
+                expr = ExprAddrof(expr)
             expr.pos = pos
             return expr
 
@@ -344,10 +346,7 @@ class Parser(Tokenizer):
                 if isinstance(arr_type, CPointer) or isinstance(arr_type, CArray):
                     multiply = arr_type.type.sizeof()
 
-                if isinstance(arr_type, CArray):
-                    x = ExprDeref(ExprBinary(ExprAddrof(x), '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
-                else:
-                    x = ExprDeref(ExprBinary(x, '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
+                x = ExprDeref(ExprBinary(x, '+', ExprBinary(sub, '*', ExprNumber(multiply))), self._combine_pos(x.pos, temp_pos))
 
             elif self.match_token('.'):
                 member, mempos = self.expect_ident()

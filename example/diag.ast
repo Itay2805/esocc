@@ -1,0 +1,17 @@
+(func main
+  ((copy 72 ch)
+   (copy $TEMP1 (addrof ch))
+   (copy 101 (deref ($TEMP1 + 1)))
+   (copy 108 (deref ($TEMP1 + 2)))
+   (copy 111 (deref ($TEMP1 + 3)))
+   (copy 0 (deref ($TEMP1 + 4)))
+   (call draw_line (0, $TEMP1, 0, 3)
+   (return (nop))))
+
+(func draw_line
+  ((copy (video_ram + (line * 32)) vram)
+   (copy (fgcol | bgcol) col)
+   (loop (deref string) ((copy (col | (deref string)) (deref vram))
+ (copy string $TEMP0)
+ (copy (string + 1) string)))
+   (return (nop))))

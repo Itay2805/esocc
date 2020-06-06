@@ -80,6 +80,9 @@ class Printer:
             IrOpcode.ASSIGN_MUL,
             IrOpcode.ASSIGN_DIV,
             IrOpcode.ASSIGN_MOD,
+            IrOpcode.ASSIGN_OR,
+            IrOpcode.ASSIGN_AND,
+            IrOpcode.ASSIGN_XOR,
         ]:
             return f'{self.print_operand(ins.oprs[0])} = {self.print_operand(ins.oprs[1])} {self.print_mnemonic(ins.op)} {self.print_operand(ins.oprs[2])}'
 
