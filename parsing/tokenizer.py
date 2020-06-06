@@ -28,8 +28,8 @@ class Token:
 
 class EofToken(Token):
 
-    def __init__(self):
-        super(EofToken, self).__init__(None)
+    def __init__(self, pos: CodePosition):
+        super(EofToken, self).__init__(pos)
 
     def __str__(self):
         return 'End of file'
@@ -136,21 +136,22 @@ class Tokenizer:
         GREEN = '\033[32m'
         RED = '\033[31m'
 
-        print(
-            f'{BOLD}{self.filename}:{pos.start_line + 1}:{pos.start_column + 1}:{RESET} {RED}{BOLD}syntax error:{RESET} {msg}')
-        line = self.lines[pos.start_line]
-        line = line[:pos.start_column] + BOLD + line[pos.start_column:pos.end_column] + RESET + line[pos.end_column:]
-        print(line)
-        c = ''
-        for i in range(pos.start_column):
-            if self.lines[pos.start_line][i] == '\t':
-                c += '\t'
-            else:
-                c += ' '
+        print(f'{BOLD}{self.filename}:{pos.start_line + 1}:{pos.start_column + 1}:{RESET} {RED}{BOLD}syntax error:{RESET} {msg}')
 
-        print(c + BOLD + RED + '^' + '~' * (pos.end_column - pos.start_column - 1) + RESET)
+        if pos.start_line < len(self.lines):
+            line = self.lines[pos.start_line]
+            line = line[:pos.start_column] + BOLD + line[pos.start_column:pos.end_column] + RESET + line[pos.end_column:]
+            print(line)
+            c = ''
+            for i in range(pos.start_column):
+                if self.lines[pos.start_line][i] == '\t':
+                    c += '\t'
+                else:
+                    c += ' '
+
+            print(c + BOLD + RED + '^' + '~' * (pos.end_column - pos.start_column - 1) + RESET)
+
         print()
-
         traceback.print_stack(file=sys.stdout)
         exit(-1)
 
@@ -189,7 +190,12 @@ class Tokenizer:
         self.pushes.pop()
 
     def is_token(self, kind) -> bool:
-        if isinstance(kind, str):
+        if isinstance(self.token, EofToken):
+            if kind == EofToken:
+                return True
+            else:
+                self._syntax_error('Unexpected EOF')
+        elif isinstance(kind, str):
             return isinstance(self.token, SymbolToken) and self.token.value == kind
         elif isinstance(self.token, kind):
             return True
@@ -198,6 +204,8 @@ class Tokenizer:
         if self.is_token(KeywordToken) and self.token.value == ident:
             return True
         else:
+            if isinstance(self.token, EofToken):
+                self._syntax_error('Unexpected EOF')
             return False
 
     def match_keyword(self, ident) -> bool:
@@ -270,7 +278,7 @@ class Tokenizer:
 
         # End of file
         if len(self.stream) == 0:
-            self.token = EofToken()
+            self.token = EofToken(pos)
 
         elif self.stream[0] == '\'':
             self._inc_stream()

@@ -1156,7 +1156,7 @@ class Parser(Tokenizer):
                         self._add_function(name, ret_typ)
                         self.func = self.func_list[e.ident.index]
                     else:
-                        if self.func.type.ret_type != ret_typ:
+                        if self.func is not None and self.func.type.ret_type != ret_typ:
                             self.report_fatal_error(f'conflicting types for `{self.func.name}`', name_pos, False)
                         self.func = self.func_list[self._use(name).ident.index]
 

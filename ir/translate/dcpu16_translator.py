@@ -388,9 +388,9 @@ class Dcpu16Translator:
                     return self._copied_params[index]
                 else:
                     if self._need_prologue:
-                        return f'[J + {index + 2}]'
+                        return f'[J + {index + 1}]'
                     else:
-                        return f'[SP + {index + 2}]'
+                        return f'[SP + {index + 1}]'
             else:
                 reg = self._register_mapping[self._reg_res.get_color(opr.get_id())]
                 if reg in 'ABC' and reg not in self._to_store_on_call:
