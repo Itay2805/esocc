@@ -1,20 +1,23 @@
 import os
 import sys
 import pcpp
-import argparse
 import pickle
+import struct
+import argparse
 from io import StringIO
 
+# C parsing related
 from parsing.parser import Parser
 from parsing.types import StorageClass
 from parsing.optimizer import Optimizer
 from parsing.ir_translator import IrTranslator
 
-from ir.printer import Printer
+# Dcpu16 related
 from ir.translate.dcpu16_translator import Dcpu16Translator
+from asm.dcpu16.peephole import Dcpu16PeepholeOptimizer
+from asm.dcpu16.assembler import Dcpu16Assembler
+from asm.dcpu16.linker import Dcpu16Linker, BinaryType
 
-from asm.dcpu16.peephole import PeepholeOptimizer
-from asm.dcpu16.assembler import Assembler
 
 def main():
     parser = argparse.ArgumentParser(description="Esoteric C compiler")
@@ -39,6 +42,9 @@ def main():
 
     # TODO: pass defines
 
+    #
+    # Figure all the files
+    #
     files = []
     asms = []
     objects = []
@@ -54,17 +60,23 @@ def main():
             asms.append((file, open(file).read()))
 
         elif file.endswith('.o'):
-            object = pickle.Unpickler(open(file)).load()
-            objects.append((object, file))
+            obj = pickle.Unpickler(open(file, 'rb')).load()
+            objects.append((obj, file))
 
         else:
             assert False, f"Unknown file extension {file}"
 
+    #
+    # If preprocess just print the preprocessed files
+    #
     if args.preprocess_only:
         for code, file in files:
             print(code)
         return
 
+    #
+    # Compile all c files
+    #
     for code, file in files:
         # Parse the code into an ast
         parser = Parser(code, filename=file)
@@ -90,7 +102,7 @@ def main():
         asm = code_trans.get_asm()
 
         # Run the code through the peephole optimizer
-        optimizer = PeepholeOptimizer()
+        optimizer = Dcpu16PeepholeOptimizer()
         asm = optimizer.optimize(asm)
 
         # Add externs for any unknown label
@@ -113,22 +125,49 @@ def main():
 
         asms.append((asm, file))
 
+    #
+    # If we only do compilation then save the assembly files
+    #
     if args.compile_only:
         for asm, file in asms:
-            if file.endswith('.c'):
-                with open(file[:-2] + '.s', 'w') as f:
-                    f.write(asm)
+            with open(file[:-2] + '.s', 'w') as f:
+                f.write(asm)
         return
 
+    #
+    # Assemble all assembly files
+    #
     for asm, file in asms:
-        asm = Assembler(asm, file)
+        asm = Dcpu16Assembler(asm, file)
         asm.parse()
-        if not asm.got_errors:
-            for word in asm.get_words():
-                print(hex(word)[2:].zfill(4))
+        asm.fix_labels()
+        if asm.got_errors:
+            exit(1)
+        assert not asm.got_errors
+        objects.append((asm.get_object(), file))
 
+    #
+    # If only assemble save the object files
+    #
     if args.assemble_only:
+        for obj, file in objects:
+            pickle.Pickler(open(file[:-2] + '.o', 'wb')).dump(obj)
         return
+
+    #
+    # Link everything
+    #
+    linker = Dcpu16Linker()
+    for obj, file in objects:
+        linker.append_object(obj)
+    linker.link(BinaryType.RAW)
+
+    #
+    # Output the final binary
+    #
+    with open(args.outfile, 'wb') as f:
+        for word in linker.get_words():
+            f.write(struct.pack('>H', word))
 
 
 if __name__ == '__main__':

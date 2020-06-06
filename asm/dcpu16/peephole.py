@@ -9,7 +9,7 @@ TWO_SAME_OPS = re.compile("\t(?P<operation>ADD|SUB|MUL) (?P<target>A|B|C|X|Y|Z|I
 DEAD_SET = re.compile("\t.+ (?P<destination>A|B|C|X|Y|Z|I|J|SP), .+\n\t(?P<expression>SET (?P=destination), .*)")
 
 
-class PeepholeOptimizer:
+class Dcpu16PeepholeOptimizer:
 
     def __init__(self):
         pass

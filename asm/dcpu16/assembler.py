@@ -3,7 +3,7 @@ from typing import *
 import struct
 
 
-class Assembler(Tokenizer):
+class Dcpu16Assembler(Tokenizer):
 
     class LabelUse:
 
@@ -12,9 +12,9 @@ class Assembler(Tokenizer):
             self.name = name
 
     def __init__(self, code, filename='<unknown>'):
-        super(Assembler, self).__init__(code, filename)
+        super(Dcpu16Assembler, self).__init__(code, filename)
 
-        self._lbl_uses = []  # type: List[Assembler.LabelUse]
+        self._lbl_uses = []  # type: List[Dcpu16Assembler.LabelUse]
         self._lbls = {}  # type: Dict[str, int]
         self._words = []
         self._pos = 0
@@ -44,7 +44,7 @@ class Assembler(Tokenizer):
         self._lbls[name] = self._pos
 
     def _use_label(self, name: str):
-        self._lbl_uses.append(Assembler.LabelUse(name, self._pos))
+        self._lbl_uses.append(Dcpu16Assembler.LabelUse(name, self._pos))
 
     def fix_labels(self):
         orig = self._pos
@@ -100,10 +100,10 @@ class Assembler(Tokenizer):
                 pos = self.token.pos
 
         if pos is not None:
-            print(f'{Assembler.BOLD}{self.filename}:{pos.start_line + 1}:{pos.start_column + 1}:{Assembler.RESET} {col}{Assembler.BOLD}{typ}:{Assembler.RESET} {msg}')
+            print(f'{Dcpu16Assembler.BOLD}{self.filename}:{pos.start_line + 1}:{pos.start_column + 1}:{Dcpu16Assembler.RESET} {col}{Dcpu16Assembler.BOLD}{typ}:{Dcpu16Assembler.RESET} {msg}')
 
             line = self.lines[pos.start_line]
-            line = line[:pos.start_column] + Assembler.BOLD + line[pos.start_column:pos.end_column] + Assembler.RESET + line[pos.end_column:]
+            line = line[:pos.start_column] + Dcpu16Assembler.BOLD + line[pos.start_column:pos.end_column] + Dcpu16Assembler.RESET + line[pos.end_column:]
             print(line)
 
             c = ''
@@ -113,20 +113,20 @@ class Assembler(Tokenizer):
                 else:
                     c += ' '
 
-            print(c + Assembler.BOLD + col + '^' + '~' * (pos.end_column - pos.start_column - 1) + Assembler.RESET)
+            print(c + Dcpu16Assembler.BOLD + col + '^' + '~' * (pos.end_column - pos.start_column - 1) + Dcpu16Assembler.RESET)
             print()
         else:
-            print(f'{Assembler.BOLD}{self.filename}:{Assembler.RESET} {col}{Assembler.BOLD}{typ}:{Assembler.RESET} {msg}')
+            print(f'{Dcpu16Assembler.BOLD}{self.filename}:{Dcpu16Assembler.RESET} {col}{Dcpu16Assembler.BOLD}{typ}:{Dcpu16Assembler.RESET} {msg}')
 
     def report_error(self, msg: str, pos=None):
-        self.report('error', Assembler.RED, msg, pos)
+        self.report('error', Dcpu16Assembler.RED, msg, pos)
         self.got_errors = True
 
     def report_warn(self, msg: str, pos=None):
-        self.report('warning', Assembler.YELLOW, msg, pos)
+        self.report('warning', Dcpu16Assembler.YELLOW, msg, pos)
 
     def report_fatal_error(self, msg: str, pos=None):
-        self.report('error', Assembler.RED, msg, pos)
+        self.report('error', Dcpu16Assembler.RED, msg, pos)
         exit(-1)
 
     ####################################################################################################################
@@ -333,8 +333,8 @@ class Assembler(Tokenizer):
         self.expect_token(KeywordToken)
         keyword = tok.value
         pos = tok.value
-        if keyword in Assembler.INST_TABLE:
-            opcode = Assembler.INST_TABLE[keyword]
+        if keyword in Dcpu16Assembler.INST_TABLE:
+            opcode = Dcpu16Assembler.INST_TABLE[keyword]
             b, extra1 = self._parse_operand(False)
             self.expect_token(',')
             a, extra2 = self._parse_operand(True)
@@ -356,8 +356,8 @@ class Assembler(Tokenizer):
                 else:
                     self._emit_word(extra2)
 
-        elif keyword in Assembler.SPECIAL_INST_TABLE:
-            opcode = Assembler.SPECIAL_INST_TABLE[keyword]
+        elif keyword in Dcpu16Assembler.SPECIAL_INST_TABLE:
+            opcode = Dcpu16Assembler.SPECIAL_INST_TABLE[keyword]
             a, extra = self._parse_operand(True)
 
             value = 0 | opcode << 5 | a << 10
