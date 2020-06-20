@@ -44,6 +44,11 @@ class Dcpu16Assembler(Tokenizer):
         self._lbls[name] = self._pos
 
     def _use_label(self, name: str):
+        if name[0] == '_':
+            if self._current_lbl is None:
+                self.report_error(f'used local label `{name}` before a label')
+            else:
+                name = self._current_lbl + name
         self._lbl_uses.append(Dcpu16Assembler.LabelUse(name, self._pos))
 
     def fix_labels(self):
@@ -258,14 +263,14 @@ class Dcpu16Assembler(Tokenizer):
             elif self.is_token(IntToken):
                 val = self.token.value
                 self.next_token()
-                off = self._parse_addition()
                 self.expect_token(']')
-                return 0x1E, (val, off)
+                return 0x1E, val
             elif self.is_token(IdentToken):
                 val = self.token.value
                 self.next_token()
+                off = self._parse_addition()
                 self.expect_token(']')
-                return 0x1E, val
+                return 0x1E, (val, off)
             else:
                 assert False, self.token
         elif self.is_token(IntToken):
@@ -352,9 +357,9 @@ class Dcpu16Assembler(Tokenizer):
                     self._emit_word(extra1)
 
             if extra2 is not None:
-                if isinstance(extra2, str):
-                    self._use_label(extra2)
-                    self._emit_word(0)
+                if isinstance(extra2, tuple):
+                    self._use_label(extra2[0])
+                    self._emit_word(extra2[1])
                 else:
                     self._emit_word(extra2)
 
@@ -365,9 +370,9 @@ class Dcpu16Assembler(Tokenizer):
             value = 0 | opcode << 5 | a << 10
             self._emit_word(value)
             if extra is not None:
-                if isinstance(extra, str):
-                    self._use_label(extra)
-                    self._emit_word(0)
+                if isinstance(extra, tuple):
+                    self._use_label(extra[0])
+                    self._emit_word(extra[1])
                 else:
                     self._emit_word(extra)
 
@@ -396,10 +401,13 @@ class Dcpu16Assembler(Tokenizer):
                     if self.is_token(IntToken):
                         count = self.token.value
                         val = 0
-                        if self.is_token(IntToken):
-                            val = self.token.value
-                            self.next_token()
                         self.next_token()
+                        if self.match_token(','):
+                            if self.is_token(IntToken):
+                                val = self.token.value
+                                self.next_token()
+                            else:
+                                self.report_error('invalid value for .fill')
                         for i in range(count):
                             self._emit_word(val)
                     else:

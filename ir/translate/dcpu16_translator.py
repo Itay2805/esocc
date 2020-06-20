@@ -448,7 +448,7 @@ class Dcpu16Translator:
         if isinstance(opr, IrConst):
             return opr.get_value()
         elif isinstance(opr, IrBlockRef):
-            return f'.blk{opr.get_id()}'
+            return f'_blk{opr.get_id()}'
         elif isinstance(opr, IrVar):
             if var_base(opr.get_id()) in self._proc.get_params():
                 index = self._proc.get_params().index(var_base(opr.get_id()))
