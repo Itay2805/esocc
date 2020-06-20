@@ -1,4 +1,4 @@
-from ir.control_flow import ControlFlowGraph, make_cfg
+from ir.control_flow import BasicBlock, ControlFlowGraph, make_cfg
 from ir.allocation.basic import BasicRegisterAllocator
 from ir.allocation.allocator import RegisterAllocation
 from ir.program import Procedure
@@ -32,13 +32,13 @@ class Dcpu16Translator:
         self._proc: Procedure = None
         self._cfg: ControlFlowGraph = None
         self._reg_res: RegisterAllocation = None
-        self._to_store_on_call = []
         self._to_restore_on_exit = []
         self._stored_lrs = []
         self._loaded_lrs = {}
         self._need_prologue = False
         self._copied_params = {}
-        self._register_mapping = ''
+        self._register_mapping = 'ABCXYZI'
+        self._caller_saved = 'ABC'
         self._generated_asm = ''
 
     def get_asm(self):
@@ -67,8 +67,8 @@ class Dcpu16Translator:
         reg_alloc = BasicRegisterAllocator()
         self._reg_res = reg_alloc.allocate(self._cfg, Dcpu16Translator.DCPU16_NUM_GP_REGISTERS)
 
-        # This is the color -> register map
-        self._register_mapping = 'ABCXYZI'
+        # Will contain the registers which might need to be saved for later on
+        self._caller_saved = ''
 
         #
         # check if we need a prologue
@@ -81,12 +81,6 @@ class Dcpu16Translator:
                 if inst.op == IrOpcode.STORE:
                     self._need_prologue = True
                     self._stored_lrs.append(tuple(inst.extra))
-        
-        # This is filled out as we go
-        # TODO: we should fill it out better so we only
-        #       store and restore whatever that will be
-        #       used afterwards without a reassignment
-        self._to_store_on_call = []
 
         # these registers need to be restored when we exit from the function
         # TODO: this is kinda ugly
@@ -102,6 +96,9 @@ class Dcpu16Translator:
             self._append(f'\tSET PUSH, J')
             self._append(f'\tSET J, SP')
 
+            for reg in self._to_restore_on_exit:
+                self._append(f'\tSET PUSH, {reg}')
+
             if len(self._stored_lrs) > 0:
                 self._append(f'\tSUB SP, {len(self._stored_lrs)}')
 
@@ -113,13 +110,15 @@ class Dcpu16Translator:
                 self._append(f'_blk{blk.get_id()}:')
 
             # Translate the block's instructions
-            last_cmp_in_block = None
+            i = 0
             for inst in blk.get_instructions():
                 # self._append(f'  # {Printer().print_instruction(inst)}')
 
                 dest = self._translate_operand(inst.oprs[0], True)
                 opr1 = self._translate_operand(inst.oprs[1], True)
                 opr2 = self._translate_operand(inst.oprs[2], True)
+
+                # TODO: remove assignments without side effects
 
                 if inst.op == IrOpcode.ASSIGN_ADD or inst.op == IrOpcode.ASSIGN_SIGNED_ADD:
                     if opr2 == dest:
@@ -211,9 +210,13 @@ class Dcpu16Translator:
                         self._append(f'\tSET {dest}, {opr1}')
 
                 elif inst.op == IrOpcode.ASSIGN_READ:
+                    if opr1.startswith('['):
+                        self._append(f'\tSET {dest}, {opr1}')
+                        opr1 = dest
                     self._append(f'\tSET {dest}, [{opr1}]')
 
                 elif inst.op == IrOpcode.WRITE:
+                    assert not dest.startswith('['), "shit"
                     self._append(f'\tSET [{dest}], {opr1}')
 
                 elif inst.op == IrOpcode.RET:
@@ -272,11 +275,11 @@ class Dcpu16Translator:
                 elif inst.op == IrOpcode.CALL or inst.op == IrOpcode.CALL_PTR:
 
                     # save registers that we need to
-                    # TODO: we can do this much smarter if
-                    #       we look at which of them is gonna
-                    #       be used again later
-                    for e in self._to_store_on_call:
-                        self._append(f'\tSET PUSH, {e}')
+                    saved = ''
+                    for e in self._caller_saved:
+                        if self._should_save_reg(i, blk, e):
+                            saved += e
+                            self._append(f'\tSET PUSH, {e}')
 
                     for e in reversed(inst.extra):
                         self._append(f'\tSET PUSH, {self._translate_operand(e, True)}')
@@ -290,7 +293,7 @@ class Dcpu16Translator:
                         self._append(f'\tSUB SP, {len(inst.extra)}')
 
                     # restore registers that we need to
-                    for e in reversed(self._to_store_on_call):
+                    for e in reversed(saved):
                         self._append(f'\tSET {e}, POP')
 
                 elif inst.op == IrOpcode.ASSIGN_CALL or inst.op == IrOpcode.ASSIGN_CALL_PTR:
@@ -330,10 +333,8 @@ class Dcpu16Translator:
                 elif inst.op == IrOpcode.LOAD:
                     lr = tuple(inst.extra)
                     i = self._stored_lrs.index(lr)
-
                     self._loaded_lrs[dest] = lr
                     self._append(f'\tSET {dest}, [J - {i + 1}]')
-                    pass
 
                 elif inst.op == IrOpcode.UNLOAD:
                     # lr = self._loaded_lrs[dest]
@@ -370,6 +371,73 @@ class Dcpu16Translator:
                 else:
                     assert False, f"Unknown instruction = {inst}"
 
+                i += 1
+
+    def _check_register_usage(self, insts: List[IrInstruction], register):
+        """
+        Check if the register is used without any assignments
+        """
+
+        for inst in insts:
+            opr_start = 1 if inst.op.is_opcode_assign() else 0
+            opr_end = inst.op.get_operand_count()
+
+            for i in range(opr_start, opr_end):
+                if isinstance(inst.oprs[i], IrVar) and self._translate_operand(inst.oprs[i], False) == register:
+                    print(f'{register} used in {inst}')
+                    return 'used'
+
+            if inst.op.has_extra_operands():
+                for i in range(len(inst.extra)):
+                    if isinstance(inst.extra[i], IrVar) and self._translate_operand(inst.extra[i], False) == register:
+                        print(f'{register} used in {inst}')
+                        return 'used'
+
+            # Assigned to, so will not be used with current value
+            if inst.op.is_opcode_assign():
+                if isinstance(inst.oprs[0], IrVar) and self._translate_operand(inst.oprs[0], False) == register:
+                    print(f'{register} assigned before usage in {inst}')
+                    return 'assigned_before_usage'
+
+        # not even mentioned in block
+        return 'not_mentioned'
+
+    def _should_save_reg(self, i: int, blk: BasicBlock, register):
+        """
+        Will check if the register should be saved
+        """
+
+        # start by checking in the same block
+        ret = self._check_register_usage(blk.get_instructions()[i+1:], register)
+        if ret == 'assigned_before_usage':
+            return False
+        elif ret == 'used':
+            return True
+
+        # setup the explore list
+        explored = set()
+        to_explore: List[BasicBlock] = []
+        explored.add(blk.get_id())
+        for b in blk.get_next():
+            if b.get_id() not in explored:
+                to_explore.append(b)
+
+        # check them
+        while len(to_explore) != 0:
+            # Pop and add anything else to search
+            blk = to_explore.pop()
+            explored.add(blk.get_id())
+            for b in blk.get_next():
+                if b.get_id() not in explored:
+                    to_explore.append(b)
+
+            # Iterate instructions to find usage
+            ret = self._check_register_usage(blk.get_instructions(), register)
+            if ret == 'assigned_before_usage':
+                return False
+            elif ret == 'used':
+                return True
+
     def _translate_operand(self, opr, deref):
         """
         Translates a single operand to dcpu16
@@ -393,8 +461,8 @@ class Dcpu16Translator:
                         return f'[SP + {index + 1}]'
             else:
                 reg = self._register_mapping[self._reg_res.get_color(opr.get_id())]
-                if reg in 'ABC' and reg not in self._to_store_on_call:
-                    self._to_store_on_call.append(reg)
+                if reg in 'ABC' and reg not in self._caller_saved:
+                    self._caller_saved += reg
                 return reg
         elif isinstance(opr, IrName):
             if deref:

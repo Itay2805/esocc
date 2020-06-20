@@ -258,8 +258,9 @@ class Dcpu16Assembler(Tokenizer):
             elif self.is_token(IntToken):
                 val = self.token.value
                 self.next_token()
+                off = self._parse_addition()
                 self.expect_token(']')
-                return 0x1E, val
+                return 0x1E, (val, off)
             elif self.is_token(IdentToken):
                 val = self.token.value
                 self.next_token()
@@ -277,8 +278,9 @@ class Dcpu16Assembler(Tokenizer):
                 return 0x1F, val
         elif self.is_token(IdentToken):
             val = self.token.value
+            off = self._parse_addition()
             self.next_token()
-            return 0x1F, val
+            return 0x1F, (val, off)
         else:
             self.report_fatal_error('jwjwdwaduuihwadiuawd')
 
@@ -343,9 +345,9 @@ class Dcpu16Assembler(Tokenizer):
             self._emit_word(value)
 
             if extra1 is not None:
-                if isinstance(extra1, str):
-                    self._use_label(extra1)
-                    self._emit_word(0)
+                if isinstance(extra1, tuple):
+                    self._use_label(extra1[0])
+                    self._emit_word(extra1[1])
                 else:
                     self._emit_word(extra1)
 

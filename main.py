@@ -62,7 +62,7 @@ def main():
             code = s.getvalue()
             files.append((code, file))
 
-        elif file.endswith('.s'):
+        elif file.endswith('.S'):
             asms.append((file, open(file).read()))
 
         elif file.endswith('.o'):
@@ -149,7 +149,7 @@ def main():
     #
     if args.compile_only:
         for asm, file in asms:
-            with open(file[:-2] + '.s', 'w') as f:
+            with open(file[:-2] + '.S', 'w') as f:
                 f.write(asm)
         return
 

@@ -3,11 +3,19 @@ import re
 
 # TODO: use custom rule syntax for easier time
 
-SET_ADDSUB_DEREF_1 = re.compile("\tSET (?P<tmp_reg>A|B|C|X|Y|Z|I|J|SP), (?P<target_reg>A|B|C|X|Y|Z|I|J|SP)\n\t(?P<operation>ADD|SUB) (?P=tmp_reg), (?P<constant>\d+)\n\tSET (?P<destination>.+), \[(?P=tmp_reg)( (?P<existing_operation>\-|\+) (?P<existing_constant>\d+))?\]")
-SET_ADDSUB_DEREF_2 = re.compile("\tSET (?P<tmp_reg>A|B|C|X|Y|Z|I|J|SP), (?P<target_reg>A|B|C|X|Y|Z|I|J|SP)\n\t(?P<operation>ADD|SUB) (?P=tmp_reg), (?P<constant>\d+)\n\tSET \[(?P=tmp_reg)( (?P<existing_operation>\-|\+) (?P<existing_constant>\d+))?\], (?P<source>.+)")
-TWO_SAME_OPS = re.compile("\t(?P<operation>ADD|SUB|MUL) (?P<target>A|B|C|X|Y|Z|I|J|SP), (?P<constant_1>\d+)\n\t(?P=operation) (?P=target), (?P<constant_2>\d+)")
-DEAD_SET = re.compile("\t.+ (?P<destination>A|B|C|X|Y|Z|I|J|SP), .+\n\t(?P<expression>SET (?P=destination), .*)")
+SET_ADDSUB_DEREF_1 = re.compile(
+    r"\tSET (?P<tmp_reg>A|B|C|X|Y|Z|I|J|SP), (?P<target_reg>A|B|C|X|Y|Z|I|J|SP|([_a-zA-Z0-9]+))\n"
+    r"\t(?P<operation>ADD|SUB) (?P=tmp_reg), (?P<constant>\d+)\n"
+    r"\tSET (?P<destination>.+), \[(?P=tmp_reg)( (?P<existing_operation>[-+]) (?P<existing_constant>\d+))?\]")
 
+SET_ADDSUB_DEREF_2 = re.compile(
+    r"\tSET (?P<tmp_reg>A|B|C|X|Y|Z|I|J|SP), (?P<target_reg>A|B|C|X|Y|Z|I|J|SP|([_a-zA-Z0-9]+))\n"
+    r"\t(?P<operation>ADD|SUB) (?P=tmp_reg), (?P<constant>\d+)\n"
+    r"\tSET \[(?P=tmp_reg)( (?P<existing_operation>[-+]) (?P<existing_constant>\d+))?\], (?P<source>.+)")
+
+TWO_SAME_OPS = re.compile(
+    r"\t(?P<operation>ADD|SUB|MUL) (?P<target>A|B|C|X|Y|Z|I|J|SP), (?P<constant_1>\d+)\n"
+    r"\t(?P=operation) (?P=target), (?P<constant_2>\d+)")
 
 class Dcpu16PeepholeOptimizer:
 
@@ -92,5 +100,4 @@ class Dcpu16PeepholeOptimizer:
         asm = SET_ADDSUB_DEREF_1.sub(self._set_addsub_deref, asm)
         asm = SET_ADDSUB_DEREF_2.sub(self._set_addsub_deref, asm)
         asm = TWO_SAME_OPS.sub(self._two_same_ops, asm)
-        asm = DEAD_SET.sub(self._dead_set, asm)
         return asm
